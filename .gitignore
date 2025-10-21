@@ -3,3 +3,5 @@ data/
 cryptoshow-benchmark/
 cryptic-finetuning/
 old-train.ipynb
+src/B-evaluate-cryptoshow/__pycache__
+src/__pycache__

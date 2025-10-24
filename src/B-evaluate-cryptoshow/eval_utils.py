@@ -107,5 +107,6 @@ def compute_pocket_level_metrics(cryptic_binding_residues, predicted_binding_sit
 
         coverages.append(this_coverage)
         dice_coefficients.append(this_dice_coefficient)
-        binding_prediction_scores.extend(prediction_scores[protein_id][concatenated_cryptic_binding_residues])
+        if protein_id in prediction_scores:
+            binding_prediction_scores.extend(prediction_scores[protein_id][concatenated_cryptic_binding_residues])
     return DCCs, coverages, dice_coefficients, binding_prediction_scores, number_of_pockets

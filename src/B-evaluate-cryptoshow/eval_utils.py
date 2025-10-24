@@ -82,8 +82,8 @@ def compute_pocket_level_metrics(cryptic_binding_residues, predicted_binding_sit
     for protein_id in cryptic_binding_residues.keys():
         number_of_pockets += len(cryptic_binding_residues[protein_id])
         
-        if len(predicted_binding_sites[protein_id]) == 0 or len(cryptic_binding_residues[protein_id]) == 0:
-            continue
+        assert len(cryptic_binding_residues[protein_id]) > 0, f"No cryptic binding residues for protein_id: {protein_id}"
+
         coordinates = np.load(f'{coordinates_dir}/{protein_id.replace("_", "")}.npy')
 
         # loop over each cryptic binding site
@@ -97,9 +97,9 @@ def compute_pocket_level_metrics(cryptic_binding_residues, predicted_binding_sit
 
             DCCs.append(dcc)
 
-        concatenated_cryptic_binding_residues = np.unique(np.concatenate(cryptic_binding_residues[protein_id]))
+        concatenated_cryptic_binding_residues = np.array(np.unique(np.concatenate(cryptic_binding_residues[protein_id])))
         concatenated_cryptic_binding_residues = [int(i.split('_')[1]) for i in concatenated_cryptic_binding_residues]
-        concatenated_predicted_binding_residues = np.unique(np.concatenate(predicted_binding_sites[protein_id]))
+        concatenated_predicted_binding_residues = np.array(np.unique(np.concatenate(predicted_binding_sites[protein_id]))) if len(predicted_binding_sites[protein_id]) > 0 else np.array([])
         residues_covered = np.intersect1d(np.array(concatenated_cryptic_binding_residues), concatenated_predicted_binding_residues)
 
         this_coverage = len(residues_covered) / len(concatenated_cryptic_binding_residues) * 100

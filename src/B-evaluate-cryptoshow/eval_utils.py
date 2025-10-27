@@ -95,7 +95,8 @@ def compute_pocket_level_metrics(cryptic_binding_residues, predicted_binding_sit
             for predicted_cryptic_binding_residue_indices in predicted_binding_sites[protein_id]:
                 dcc = min(dcc, cryptoshow_utils.compute_center_distance(coordinates, actual_cryptic_binding_residue_indices, predicted_cryptic_binding_residue_indices))
 
-            DCCs.append(dcc)
+            if dcc != float('inf'):
+                DCCs.append(dcc)
 
         concatenated_cryptic_binding_residues = np.array(np.unique(np.concatenate(cryptic_binding_residues[protein_id])))
         concatenated_cryptic_binding_residues = [int(i.split('_')[1]) for i in concatenated_cryptic_binding_residues]

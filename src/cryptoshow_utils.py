@@ -17,15 +17,16 @@ def three_to_one(three_letter_code):
         return 'X'
     return mapping[three_letter_code[0].upper() + three_letter_code[1:].lower()]
 
-def map_residues_to_mmcif(pdb_id, chain_id, binding_residues):
+def map_auth_to_mmcif_numbering(pdb_id: str, chain_id: str, binding_residues: set) -> tuple[list[str], str]:
     """
-    Map the binding residues to the mmCIF numbering.
+    Map the binding residues from auth labeling to the mmCIF numbering (zero-based).
     Args:
         pdb_id (str): PDB ID of the protein.
         chain_id (str): Chain ID of the protein.
         binding_residues (set): Set of binding residues in the PDB numbering.
     Returns:
-        set: Set of binding residues in the mmCIF numbering.
+        List[str]: List of binding residues in the mmCIF numbering.
+        str: The amino acid sequence of the chain.
     """
     import biotite.database.rcsb as rcsb
     import biotite.structure.io.pdbx as pdbx
@@ -53,6 +54,39 @@ def map_residues_to_mmcif(pdb_id, chain_id, binding_residues):
         sequence += amino_acid
 
     return mapped_binding_residues, sequence
+
+def map_mmcif_numbering_to_auth(pdb_id: str, chain_id: str, binding_residues: np.ndarray) -> list[int]:
+    """
+    Map the binding residues from mmCIF numbering (zero-based) to the auth labeling.
+    Args:
+        pdb_id (str): PDB ID of the protein.
+        chain_id (str): Chain ID of the protein.
+        binding_residues (np.ndarray): Set of binding residues in the PDB numbering.
+    Returns:
+        list[int]: List of binding residues in the auth labeling.
+    """
+    import biotite.database.rcsb as rcsb
+    import biotite.structure.io.pdbx as pdbx
+    from biotite.structure.io.pdbx import get_structure
+    from biotite.structure import get_residues
+
+    cif_file_path = rcsb.fetch(pdb_id, "cif", CIF_FILES_PATH)
+    cif_file = pdbx.CIFFile.read(cif_file_path)
+    
+    protein = get_structure(cif_file, model=1)
+    protein = protein[(protein.atom_name == "CA") 
+                        & (protein.element == "C") 
+                        & (protein.chain_id == chain_id) ]
+    residue_ids, _ = get_residues(protein)
+
+    mapped_binding_residues = []
+    for i in range(len(residue_ids)):
+        residue_id = int(residue_ids[i])
+
+        if i in binding_residues:
+            mapped_binding_residues.append(residue_id)
+
+    return mapped_binding_residues
 
 def compute_center_distance(points: np.ndarray, expected_pocket_ids: list[int], actual_pocket_ids: list[int]) -> float:
     """

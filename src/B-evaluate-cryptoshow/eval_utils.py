@@ -73,7 +73,7 @@ def print_plots(DCCs, coverages, dice_coefficients, binding_prediction_scores, n
     plt.show()
 
 
-def compute_pocket_level_metrics(cryptic_binding_residues, predicted_binding_sites, prediction_scores, coordinates_dir):
+def compute_pocket_level_metrics(cryptic_binding_residues, predicted_binding_sites, prediction_scores, coordinates_dir, output=False):
     DCCs = []
     coverages = []
     dice_coefficients = []
@@ -90,17 +90,24 @@ def compute_pocket_level_metrics(cryptic_binding_residues, predicted_binding_sit
         for actual_cryptic_binding_residue_indices in cryptic_binding_residues[protein_id]:
             dcc = float('inf')
             actual_cryptic_binding_residue_indices = [int(i.split('_')[1]) for i in actual_cryptic_binding_residue_indices]
-
+    
             # loop over each predicted binding site and select the one with the lowest DCC
-            for predicted_cryptic_binding_residue_indices in predicted_binding_sites[protein_id]:
-                dcc = min(dcc, cryptoshow_utils.compute_center_distance(coordinates, actual_cryptic_binding_residue_indices, predicted_cryptic_binding_residue_indices))
+            for (predicted_cryptic_binding_residue_indices, tool) in predicted_binding_sites[protein_id]:
+                this_dcc = cryptoshow_utils.compute_center_distance(coordinates, actual_cryptic_binding_residue_indices, predicted_cryptic_binding_residue_indices)
+                if this_dcc < dcc:
+                    dcc = this_dcc
+                    tool_used = tool
 
             if dcc != float('inf'):
                 DCCs.append(dcc)
+                if output:
+                    print(f'Protein ID: {protein_id}, DCC: {dcc:.2f} Å predicted by {tool_used}')
+                    # if dcc < 4.0:
+                    #     print(f'Protein ID: {protein_id}, DCC: {dcc:.2f} Å predicted by {tool_used}')
 
         concatenated_cryptic_binding_residues = np.array(np.unique(np.concatenate(cryptic_binding_residues[protein_id])))
         concatenated_cryptic_binding_residues = [int(i.split('_')[1]) for i in concatenated_cryptic_binding_residues]
-        concatenated_predicted_binding_residues = np.array(np.unique(np.concatenate(predicted_binding_sites[protein_id]))) if len(predicted_binding_sites[protein_id]) > 0 else np.array([])
+        concatenated_predicted_binding_residues = np.array(np.unique(np.concatenate([i[0]for i in predicted_binding_sites[protein_id]]))) if len(predicted_binding_sites[protein_id]) > 0 else np.array([])
         residues_covered = np.intersect1d(np.array(concatenated_cryptic_binding_residues), concatenated_predicted_binding_residues)
 
         this_coverage = len(residues_covered) / len(concatenated_cryptic_binding_residues) * 100

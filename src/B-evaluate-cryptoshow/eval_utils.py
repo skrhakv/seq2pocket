@@ -8,7 +8,7 @@ sys.path.append('/home/skrhakv/cryptoshow-analysis/src')
 sys.path.append('/home/vit/Projects/cryptoshow-analysis/src')
 import cryptoshow_utils
 
-DATA_PATH = '/home/skrhakv/cryptoshow-analysis/data/A-cluster-ligysis-data/clustered-binding-sites.txt'
+DATA_PATH = '/home/skrhakv/cryptoshow-analysis/data/A-cluster-ligysis-data/cryptobench-clustered-binding-sites.txt'
 
 def read_test_binding_residues(data_path=DATA_PATH, pocket_types=['CRYPTIC']) -> set[int]:
     cryptic_binding_residues = {}

@@ -17,13 +17,14 @@ def three_to_one(three_letter_code):
         return 'X'
     return mapping[three_letter_code[0].upper() + three_letter_code[1:].lower()]
 
-def map_auth_to_mmcif_numbering(pdb_id: str, chain_id: str, binding_residues: set) -> tuple[list[str], str]:
+def map_auth_to_mmcif_numbering(pdb_id: str, chain_id: str, binding_residues: set, auth=True) -> tuple[list[str], str]:
     """
     Map the binding residues from auth labeling to the mmCIF numbering (zero-based).
     Args:
         pdb_id (str): PDB ID of the protein.
         chain_id (str): Chain ID of the protein.
         binding_residues (set): Set of binding residues in the PDB numbering.
+        auth (bool): Whether to use auth labeling (True) or .
     Returns:
         List[str]: List of binding residues in the mmCIF numbering.
         str: The amino acid sequence of the chain.
@@ -36,7 +37,7 @@ def map_auth_to_mmcif_numbering(pdb_id: str, chain_id: str, binding_residues: se
     cif_file_path = rcsb.fetch(pdb_id, "cif", CIF_FILES_PATH)
     cif_file = pdbx.CIFFile.read(cif_file_path)
     
-    protein = get_structure(cif_file, model=1)
+    protein = get_structure(cif_file, model=1, use_author_fields=auth)
     protein = protein[(protein.atom_name == "CA") 
                         & (protein.element == "C") 
                         & (protein.chain_id == chain_id) ]
@@ -104,3 +105,32 @@ def compute_center_distance(points: np.ndarray, expected_pocket_ids: list[int], 
 
     dist = np.linalg.norm(expected_coords - actual_coords)
     return dist
+
+def get_distance_matrix(pdb_id, chain_id):
+    from scipy.spatial import distance_matrix
+
+    coords = get_coordinates(pdb_id, chain_id)
+    dist_matrix = distance_matrix(coords, coords)
+
+    return dist_matrix
+
+def get_coordinates(pdb_id, chain_id, auth=True):
+    import biotite.database.rcsb as rcsb
+    import biotite.structure.io.pdbx as pdbx
+    from biotite.structure.io.pdbx import get_structure
+    from biotite.structure import get_residues
+    
+    cif_file_path = rcsb.fetch(pdb_id, "cif", CIF_FILES_PATH)
+    cif_file = pdbx.CIFFile.read(cif_file_path)
+    
+    protein = get_structure(cif_file, model=1, use_author_fields=auth)
+    protein = protein[(protein.atom_name == "CA") 
+                        & (protein.element == "C") 
+                        & (protein.chain_id == chain_id) ]
+    residue_ids, residue_types = get_residues(protein)
+
+    coords = protein.coord
+
+    assert len(residue_ids) == len(coords) == len(residue_types), "Number of residues and coordinates do not match"
+
+    return coords

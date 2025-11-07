@@ -24,7 +24,7 @@ def map_auth_to_mmcif_numbering(pdb_id: str, chain_id: str, binding_residues: se
         pdb_id (str): PDB ID of the protein.
         chain_id (str): Chain ID of the protein.
         binding_residues (set): Set of binding residues in the PDB numbering.
-        auth (bool): Whether to use auth labeling (True) or .
+        auth (bool): Whether to use auth labeling (True) or PDB assigned sequential numbering (False).
     Returns:
         List[str]: List of binding residues in the mmCIF numbering.
         str: The amino acid sequence of the chain.

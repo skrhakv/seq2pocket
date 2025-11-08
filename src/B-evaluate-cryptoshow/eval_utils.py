@@ -1,3 +1,8 @@
+## COPYRIGHT NOTICE
+# Parts of the following code cell was inspired by the following repository: https://github.com/luk27official/cryptoshow-benchmark/
+# For further info see the LICENSE file.
+
+
 import csv
 import sys
 import numpy as np
@@ -9,6 +14,9 @@ sys.path.append('/home/vit/Projects/cryptoshow-analysis/src')
 import cryptoshow_utils
 
 DATA_PATH = '/home/skrhakv/cryptoshow-analysis/data/A-cluster-ligysis-data/cryptobench-clustered-binding-sites.txt'
+SMOOTHING_DECISION_THRESHOLD = 0.4 # see src/C-optimize-smoother/classifier-for-cryptoshow.ipynb (https://github.com/skrhakv/cryptic-finetuning)
+DCC_THRESHOLD = 4.0  # in Angstroms
+
 
 def read_test_binding_residues(data_path=DATA_PATH, pocket_types=['CRYPTIC']) -> set[int]:
     cryptic_binding_residues = {}
@@ -33,16 +41,14 @@ def read_test_binding_residues(data_path=DATA_PATH, pocket_types=['CRYPTIC']) ->
 
     return cryptic_binding_residues, sequences
 
-DCC_THRESHOLD = 4.0  # in Angstroms
-
-def print_plots(DCCs, coverages, dice_coefficients, binding_prediction_scores, number_of_pockets, model):
+def print_plots(DCCs, coverages, dice_coefficients, binding_prediction_scores, number_of_pockets, model, dcc_threshold=DCC_THRESHOLD):
     sns.set_style("whitegrid")
     plt.rcParams['figure.facecolor'] = 'white'
 
     _, axs = plt.subplots(1, 2, figsize=(16, 6))
 
     sns.histplot(DCCs, bins=20, color='skyblue', edgecolor='black', alpha=0.7, ax=axs[0])
-    axs[0].set_title(f'{model}: Pocket Center Distance (DCC) distribution\n(median={np.median(DCCs):.2f} Å), DCC ≤ {DCC_THRESHOLD} Å: {np.sum(np.array(DCCs) < DCC_THRESHOLD)} / {number_of_pockets}', fontsize=12, fontweight='bold')
+    axs[0].set_title(f'{model}: Pocket Center Distance (DCC) distribution\n(median={np.median(DCCs):.2f} Å), DCC ≤ {dcc_threshold} Å: {np.sum(np.array(DCCs) < dcc_threshold)} / {number_of_pockets}', fontsize=12, fontweight='bold')
     axs[0].set_xlabel('DCC (Å)', fontsize=11)
     axs[0].set_ylabel('Count', fontsize=11)
     axs[0].set_xlim(0, 50)
@@ -118,3 +124,197 @@ def compute_pocket_level_metrics(cryptic_binding_residues, predicted_binding_sit
         if protein_id in prediction_scores:
             binding_prediction_scores.extend(prediction_scores[protein_id][concatenated_cryptic_binding_residues])
     return DCCs, coverages, dice_coefficients, binding_prediction_scores, number_of_pockets
+
+
+PREDICTED_RESIDUE_RADIUS_DISTANCE_THRESHOLD = 10 # in Angstroms; for each predicted binding residue, we consider all residues within this distance as candidate residues for inclusion into the binding site
+CANDIDATE_RESIDUE_SURROUNDING_RADIUS_THRESHOLD = 15 # in Angstroms; for each candidate residue that is considered for inclusion into the binding site, we define the surrounding binding site respresentation as 
+                                                    # the mean of embeddings of all predicted binding residues within this distance
+
+def process_single_sequence(structure_name: str, chain_id: str, binding_residues_indices: np.ndarray, embedding_path: str, distance_matrix: np.ndarray):
+    id = structure_name.lower() + chain_id
+    if not os.path.exists(embedding_path):
+        raise FileNotFoundError(f'Embedding file for {id} not found in {embedding_path}')
+    
+    embedding = np.load(embedding_path)
+
+    Xs = []
+    idx = []
+    
+    candidate_residues_indices = set()
+    
+    for residue_idx in binding_residues_indices:
+        close_residues_indices = np.where(distance_matrix[residue_idx] < PREDICTED_RESIDUE_RADIUS_DISTANCE_THRESHOLD)[0]
+        close_binding_residues_indices = np.intersect1d(close_residues_indices, binding_residues_indices)
+
+        candidate_residues_indices.update(set(list(close_residues_indices)) - set(list(binding_residues_indices)))
+
+    for residue_idx in candidate_residues_indices:
+        close_residues_indices = np.where(distance_matrix[residue_idx] < CANDIDATE_RESIDUE_SURROUNDING_RADIUS_THRESHOLD)[0]
+        close_binding_residues_indices = np.intersect1d(close_residues_indices, binding_residues_indices)
+
+        concatenated_embedding = np.concatenate((embedding[residue_idx], np.mean(embedding[close_binding_residues_indices], axis=0)))
+        Xs.append(concatenated_embedding)
+        idx.append(residue_idx)
+        
+    return np.array(Xs), np.array(idx)
+
+def predict_single_sequence(Xs, idx, model_3):
+    import torch
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    Xs = torch.tensor(Xs, dtype=torch.float32).to(DEVICE)
+    idx = torch.tensor(idx, dtype=torch.int64).to(DEVICE)
+
+    test_logits = model_3(Xs).squeeze()
+    test_pred = torch.sigmoid(test_logits)
+
+    return {'predictions': test_pred.detach().cpu().numpy(), 'indices': idx.detach().cpu().numpy()}
+
+def compute_distance_matrix(coordinates: np.ndarray) -> np.ndarray:
+    """
+    Compute the pairwise distance matrix for a given set of coordinates.
+
+    Args:
+        coordinates (np.ndarray): A 2D array of shape (N, 3), where N is the number of points,
+                                   and each row represents the (x, y, z) coordinates of a point.
+
+    Returns:
+        np.ndarray: A 2D array of shape (N, N), where the element at [i, j] represents the Euclidean
+                    distance between the i-th and j-th points.
+    """
+    coordinates = np.array(coordinates)
+    distance_matrix = np.linalg.norm(coordinates[:, np.newaxis] - coordinates[np.newaxis, :], axis=-1)
+    return distance_matrix
+
+DROPOUT = 0.5
+LAYER_WIDTH = 2048
+ESM2_DIM = 2560
+INPUT_DIM  = ESM2_DIM * 2
+import torch.nn as nn
+
+class CryptoBenchClassifier(nn.Module):
+    def __init__(self, dim=LAYER_WIDTH, dropout=DROPOUT):
+        super().__init__()
+        self.layer_1 = nn.Linear(in_features=INPUT_DIM, out_features=dim)
+        self.dropout1 = nn.Dropout(dropout)
+
+        self.layer_2 = nn.Linear(in_features=dim, out_features=dim)
+        self.dropout2 = nn.Dropout(dropout)
+
+        self.layer_3 = nn.Linear(in_features=dim, out_features=1)
+
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+      # Intersperse the ReLU activation function between layers
+       return self.layer_3(self.dropout2(self.relu(self.layer_2(self.dropout1(self.relu(self.layer_1(x)))))))
+
+DECISION_THRESHOLD = 0.7  # Threshold to consider a point as high score; see src/decision-thresholds.ipynb (https://github.com/skrhakv/cryptic-finetuning)
+
+
+EPS = 5.0  # Max distance for neighbors
+MIN_SAMPLES = 3  # Min points to form a cluster
+
+def compute_clusters(
+    points: list[list[float]],
+    prediction_scores: list[float],
+    decision_threshold: float = DECISION_THRESHOLD,
+    eps=EPS,
+    min_samples=MIN_SAMPLES
+):
+    from sklearn.cluster import DBSCAN
+    """
+    Compute clusters based on the given points and prediction scores.
+
+    Args:
+        points (list[list[float]]): A list of points, where each point is a list of 3 coordinates [x, y, z].
+        prediction_scores (list[float]): A list of prediction scores corresponding to each point.
+        decision_threshold (float): The threshold above which points are considered as positive.
+
+    Returns:
+        np.ndarray: An array of cluster labels for each point. Points with no cluster are labeled as -1.
+    """
+    
+    prediction_scores = prediction_scores.reshape(-1, 1)
+    stacked = np.hstack((points, prediction_scores))  # Combine coordinates with scores
+
+    high_score_mask = stacked[:, 3] > decision_threshold
+    high_score_points = stacked[high_score_mask][:, :3]  # Extract only (x, y, z) coordinates
+
+    # No pockets can be formed if there are not enough high score points.
+    if len(high_score_points) < MIN_SAMPLES:
+        return -1 * np.ones(len(points), dtype=int)
+
+    dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+    labels = dbscan.fit_predict(high_score_points)
+
+    # Initialize all labels to -1
+    all_labels = -1 * np.ones(len(points), dtype=int)
+    # Assign cluster labels to high score points
+    all_labels[high_score_mask] = labels
+    labels = all_labels
+
+    return labels
+
+from transformers import AutoTokenizer
+MAX_LENGTH = 1024
+SEQUENCE_MAX_LENGTH = MAX_LENGTH - 2
+
+
+def compute_prediction(sequence: str, emb_path: str, model: nn.Module, tokenizer: AutoTokenizer) -> np.ndarray:
+    """
+    Compute the residue-level prediction using the CryptoBench model.
+
+    Args:
+        sequence (str): Sequence of amino acids to be predicted.
+
+    Returns:
+        np.ndarray: The predicted scores for each residue.
+    """
+    import torch
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    model.eval()
+
+    sequence = str(sequence)
+    all_embeddings = []
+    final_output = []
+
+    # Process sequence in chunks of SEQUENCE_MAX_LENGTH
+    for i in range(0, len(sequence), SEQUENCE_MAX_LENGTH):
+        processed_sequence = sequence[i : i + SEQUENCE_MAX_LENGTH]
+
+        tokenized = tokenizer(
+            processed_sequence, max_length=MAX_LENGTH, padding="max_length", truncation=True, return_tensors="pt"
+        )
+        tokenized = {k: v.to(DEVICE) for k, v in tokenized.items()}
+
+        # embeddings
+        with torch.no_grad():
+            llm_output = model.llm(input_ids=tokenized["input_ids"], attention_mask=tokenized["attention_mask"])
+            embeddings = llm_output.last_hidden_state  # shape: (1, seq_len, hidden_dim)
+
+        embeddings_np = embeddings.squeeze(0).detach().cpu().numpy()
+        mask = tokenized["attention_mask"].squeeze(0).detach().cpu().numpy().astype(bool)
+        embeddings_np = embeddings_np[mask][1:-1]  # exclude [CLS], [SEP]
+        all_embeddings.append(embeddings_np)
+
+        # prediction
+        with torch.no_grad():
+            output = model(tokenized)
+            
+            if isinstance(output, tuple):
+                output = output[0]
+                
+        output = output.squeeze(0)
+        mask = tokenized["attention_mask"].squeeze(0).bool()
+        output = output[mask][1:-1]  # exclude [CLS], [SEP]
+
+        probabilities = torch.sigmoid(output).detach().cpu().numpy()
+        final_output.extend(probabilities)
+
+    # save the concatenated embeddings for the entire sequence
+    final_embeddings = np.concatenate(all_embeddings, axis=0)
+    save_path = os.path.join(emb_path)
+    np.save(save_path, final_embeddings)
+
+    return np.array(final_output).flatten()

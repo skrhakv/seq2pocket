@@ -33,10 +33,10 @@ def generate_pymol_algebra_selection(protein_id: str, residues: np.ndarray) -> s
 def get_intersection(arr1: np.ndarray, arr2: np.ndarray) -> np.ndarray:
     return np.array(list(set(arr1).intersection(set(arr2))))
 
-def draw_pocket_centers(binding_residues, predicted_residues, protein_id):
+def draw_pocket_centers(binding_residues, predicted_residues, protein_id, coordinates_dir=COORDINATES_DIR):
     from pymol import cmd
     from pymol.cgo import COLOR, SPHERE
-    coordinates = np.load(f'{COORDINATES_DIR}/{protein_id.replace("_", "")}.npy')
+    coordinates = np.load(f'{coordinates_dir}/{protein_id.replace("_", "")}.npy')
     for i, pocket in enumerate(binding_residues):
         center = coordinates[pocket].mean(axis=0)
         spherelist = [
@@ -63,7 +63,7 @@ def draw_pocket_center_lines(binding_residues, predicted_residues, protein_id):
 
 DCC_THRESHOLD = 4.0  # Angstroms
 
-def compute_DCCs(protein_id, true_binding_residues, predicted_binding_residues):
+def compute_DCCs(protein_id, true_binding_residues, predicted_binding_residues, coordinates_dir=COORDINATES_DIR):
     sys.path.append('/home/skrhakv/cryptoshow-analysis/src')
     sys.path.append('/home/vit/Projects/cryptoshow-analysis/src')
     import cryptoshow_utils
@@ -71,7 +71,7 @@ def compute_DCCs(protein_id, true_binding_residues, predicted_binding_residues):
     DCCs = []
     for true_pocket in true_binding_residues:
         dcc = float('inf')
-        coordinates = np.load(f'{COORDINATES_DIR}/{protein_id.replace("_", "")}.npy')
+        coordinates = np.load(f'{coordinates_dir}/{protein_id.replace("_", "")}.npy')
         for predicted_pocket in predicted_binding_residues:
             this_dcc = cryptoshow_utils.compute_center_distance(coordinates, true_pocket, predicted_pocket)
             print(this_dcc)

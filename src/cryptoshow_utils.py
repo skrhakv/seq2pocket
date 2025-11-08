@@ -56,7 +56,7 @@ def map_auth_to_mmcif_numbering(pdb_id: str, chain_id: str, binding_residues: se
 
     return mapped_binding_residues, sequence
 
-def map_mmcif_numbering_to_auth(pdb_id: str, chain_id: str, binding_residues: np.ndarray) -> list[int]:
+def map_mmcif_numbering_to_auth(pdb_id: str, chain_id: str, binding_residues: np.ndarray, auth=True) -> list[int]:
     """
     Map the binding residues from mmCIF numbering (zero-based) to the auth labeling.
     Args:
@@ -74,7 +74,7 @@ def map_mmcif_numbering_to_auth(pdb_id: str, chain_id: str, binding_residues: np
     cif_file_path = rcsb.fetch(pdb_id, "cif", CIF_FILES_PATH)
     cif_file = pdbx.CIFFile.read(cif_file_path)
     
-    protein = get_structure(cif_file, model=1)
+    protein = get_structure(cif_file, model=1, use_author_fields=auth)
     protein = protein[(protein.atom_name == "CA") 
                         & (protein.element == "C") 
                         & (protein.chain_id == chain_id) ]

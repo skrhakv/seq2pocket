@@ -81,3 +81,24 @@ def compute_DCCs(protein_id, true_binding_residues, predicted_binding_residues, 
 
 def count_successful_predictions(DCCs, threshold=DCC_THRESHOLD):
     return sum(1 for dcc in DCCs if dcc <= threshold)
+
+def compute_avg_successful_pocket_size(binding_pockets, predicted_pockets, coordinates_dir='/home/vit/Projects/cryptoshow-analysis/data/A-cluster-ligysis-data/coordinates'):
+    avg_success_pocket_size = []
+    for protein_id in binding_pockets.keys(): 
+        this_binding_residues = binding_pockets[protein_id]
+        this_p2rank_predictions = predicted_pockets[protein_id]
+        sys.path.append('/home/skrhakv/cryptoshow-analysis/src')
+        sys.path.append('/home/vit/Projects/cryptoshow-analysis/src')
+        import cryptoshow_utils
+
+
+        for true_pocket in this_binding_residues:
+            dcc = float('inf')
+            coordinates = np.load(f'{coordinates_dir}/{protein_id.replace("_", "")}.npy')
+            for predicted_pocket in this_p2rank_predictions:
+                this_dcc = cryptoshow_utils.compute_center_distance(coordinates, true_pocket, predicted_pocket)
+                dcc = min(dcc, this_dcc)
+            if dcc < 4.0:
+                avg_success_pocket_size.append(len(true_pocket))
+    
+    return avg_success_pocket_size

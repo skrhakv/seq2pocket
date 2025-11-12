@@ -79,21 +79,21 @@ def print_plots(DCCs, coverages, dice_coefficients, binding_prediction_scores, n
     plt.show()
 
 
-def compute_pocket_level_metrics(cryptic_binding_residues, predicted_binding_sites, prediction_scores, coordinates_dir, output=False):
+def compute_pocket_level_metrics(binding_residues, predicted_binding_sites, prediction_scores, coordinates_dir, output=False):
     DCCs = []
     coverages = []
     dice_coefficients = []
     binding_prediction_scores = []
     number_of_pockets = 0
-    for protein_id in cryptic_binding_residues.keys():
-        number_of_pockets += len(cryptic_binding_residues[protein_id])
+    for protein_id in binding_residues.keys():
+        number_of_pockets += len(binding_residues[protein_id])
         
-        assert len(cryptic_binding_residues[protein_id]) > 0, f"No cryptic binding residues for protein_id: {protein_id}"
+        assert len(binding_residues[protein_id]) > 0, f"No binding residues for protein_id: {protein_id}"
 
         coordinates = np.load(f'{coordinates_dir}/{protein_id.replace("_", "")}.npy')
 
         # loop over each cryptic binding site
-        for actual_cryptic_binding_residue_indices in cryptic_binding_residues[protein_id]:
+        for actual_cryptic_binding_residue_indices in binding_residues[protein_id]:
             dcc = float('inf')
             actual_cryptic_binding_residue_indices = [int(i.split('_')[1]) for i in actual_cryptic_binding_residue_indices]
     
@@ -111,7 +111,7 @@ def compute_pocket_level_metrics(cryptic_binding_residues, predicted_binding_sit
                     # if dcc < 4.0:
                     #     print(f'Protein ID: {protein_id}, DCC: {dcc:.2f} Å predicted by {tool_used}')
 
-        concatenated_cryptic_binding_residues = np.array(np.unique(np.concatenate(cryptic_binding_residues[protein_id])))
+        concatenated_cryptic_binding_residues = np.array(np.unique(np.concatenate(binding_residues[protein_id])))
         concatenated_cryptic_binding_residues = [int(i.split('_')[1]) for i in concatenated_cryptic_binding_residues]
         concatenated_predicted_binding_residues = np.array(np.unique(np.concatenate([i[0]for i in predicted_binding_sites[protein_id]]))) if len(predicted_binding_sites[protein_id]) > 0 else np.array([])
         residues_covered = np.intersect1d(np.array(concatenated_cryptic_binding_residues), concatenated_predicted_binding_residues)
@@ -255,12 +255,11 @@ def compute_clusters(
 
     return labels
 
-from transformers import AutoTokenizer
 MAX_LENGTH = 1024
 SEQUENCE_MAX_LENGTH = MAX_LENGTH - 2
 
 
-def compute_prediction(sequence: str, emb_path: str, model: nn.Module, tokenizer: AutoTokenizer) -> np.ndarray:
+def compute_prediction(sequence: str, emb_path: str, model, tokenizer) -> np.ndarray:
     """
     Compute the residue-level prediction using the CryptoBench model.
 
@@ -271,6 +270,7 @@ def compute_prediction(sequence: str, emb_path: str, model: nn.Module, tokenizer
         np.ndarray: The predicted scores for each residue.
     """
     import torch
+    from transformers import AutoTokenizer
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     model.eval()

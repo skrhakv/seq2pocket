@@ -219,7 +219,8 @@ def compute_clusters(
     prediction_scores: list[float],
     decision_threshold: float = DECISION_THRESHOLD,
     eps=EPS,
-    min_samples=MIN_SAMPLES
+    min_samples=MIN_SAMPLES,
+    method='dbscan'
 ):
     from sklearn.cluster import DBSCAN
     """
@@ -229,10 +230,15 @@ def compute_clusters(
         points (list[list[float]]): A list of points, where each point is a list of 3 coordinates [x, y, z].
         prediction_scores (list[float]): A list of prediction scores corresponding to each point.
         decision_threshold (float): The threshold above which points are considered as positive.
+        eps (float): The maximum distance between two samples for one to be considered as in the neighborhood of the other.
+        min_samples (int): The number of samples in a neighborhood for a point to be considered
 
     Returns:
         np.ndarray: An array of cluster labels for each point. Points with no cluster are labeled as -1.
     """
+    
+    if method not in ['dbscan', 'meanshift']:
+        raise ValueError(f"Unsupported clustering method: {method}. Supported methods are 'dbscan' and 'meanshift'.")
     
     prediction_scores = prediction_scores.reshape(-1, 1)
     stacked = np.hstack((points, prediction_scores))  # Combine coordinates with scores
@@ -244,8 +250,14 @@ def compute_clusters(
     if len(high_score_points) < MIN_SAMPLES:
         return -1 * np.ones(len(points), dtype=int)
 
-    dbscan = DBSCAN(eps=eps, min_samples=min_samples)
-    labels = dbscan.fit_predict(high_score_points)
+    if method == 'dbscan':
+        clustering = DBSCAN(eps=eps, min_samples=min_samples)
+    elif method == 'meanshift':
+        from sklearn.cluster import MeanShift
+        clustering = MeanShift(bandwidth=eps)
+    else:
+        raise ValueError(f"Unsupported clustering method: {method}. Supported methods are 'dbscan' and 'meanshift'.")
+    labels = clustering.fit_predict(high_score_points)
 
     # Initialize all labels to -1
     all_labels = -1 * np.ones(len(points), dtype=int)

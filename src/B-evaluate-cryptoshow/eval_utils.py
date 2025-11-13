@@ -247,7 +247,7 @@ def compute_clusters(
     high_score_points = stacked[high_score_mask][:, :3]  # Extract only (x, y, z) coordinates
 
     # No pockets can be formed if there are not enough high score points.
-    if len(high_score_points) < MIN_SAMPLES:
+    if len(high_score_points) < min_samples:
         return -1 * np.ones(len(points), dtype=int)
 
     if method == 'dbscan':

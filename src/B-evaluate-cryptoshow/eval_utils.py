@@ -220,7 +220,7 @@ def compute_clusters(
     decision_threshold: float = DECISION_THRESHOLD,
     eps=EPS,
     min_samples=MIN_SAMPLES,
-    method='dbscan'
+    method='dbscan',
 ):
     from sklearn.cluster import DBSCAN
     """
@@ -237,8 +237,8 @@ def compute_clusters(
         np.ndarray: An array of cluster labels for each point. Points with no cluster are labeled as -1.
     """
     
-    if method not in ['dbscan', 'meanshift']:
-        raise ValueError(f"Unsupported clustering method: {method}. Supported methods are 'dbscan' and 'meanshift'.")
+    if method not in ['dbscan', 'meanshift', 'kmeans']:
+        raise ValueError(f"Unsupported clustering method: {method}. Supported methods are 'dbscan', 'meanshift', and 'kmeans'.")
     
     prediction_scores = prediction_scores.reshape(-1, 1)
     stacked = np.hstack((points, prediction_scores))  # Combine coordinates with scores
@@ -255,8 +255,10 @@ def compute_clusters(
     elif method == 'meanshift':
         from sklearn.cluster import MeanShift
         clustering = MeanShift(bandwidth=eps)
-    else:
-        raise ValueError(f"Unsupported clustering method: {method}. Supported methods are 'dbscan' and 'meanshift'.")
+    elif method == 'kmeans':
+        from sklearn.cluster import KMeans
+        clustering = KMeans(n_clusters=max(len(high_score_points) // 19, 1))  # Ensure at least one cluster
+
     labels = clustering.fit_predict(high_score_points)
 
     # Initialize all labels to -1

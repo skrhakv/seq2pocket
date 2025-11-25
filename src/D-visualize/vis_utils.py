@@ -27,8 +27,11 @@ def reformat_binding_residues(binding_residues: dict) -> dict:
         reformated[reformated_protein_id] = reformated_residues
     return reformated
 
-def generate_pymol_algebra_selection(protein_id: str, residues: np.ndarray) -> str:
-    return f'{protein_id} and resi {"+".join([str(i) for i in residues])}'
+def generate_pymol_algebra_selection(protein_id: str, residues: np.ndarray, are_atom_ids=False) -> str:
+    if are_atom_ids:
+        return f'{protein_id} and id {"+".join([str(i) for i in residues])}'
+    else:
+        return f'{protein_id} and resi {"+".join([str(i) for i in residues])}'
 
 def get_intersection(arr1: np.ndarray, arr2: np.ndarray) -> np.ndarray:
     return np.array(list(set(arr1).intersection(set(arr2))))

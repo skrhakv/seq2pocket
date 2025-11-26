@@ -221,7 +221,8 @@ def compute_clusters(
     eps=EPS,
     min_samples=MIN_SAMPLES,
     method='dbscan',
-    postprocess=False
+    merge_threshold=None,
+    embeddings_path=None,
 ):
     from sklearn.cluster import DBSCAN
     """
@@ -238,7 +239,7 @@ def compute_clusters(
         np.ndarray: An array of cluster labels for each point. Points with no cluster are labeled as -1.
     """
     
-    if method not in ['dbscan', 'meanshift', 'kmeans', 'gmm']:
+    if method not in ['dbscan', 'meanshift', 'kmeans', 'gmm', 'pca+gmm+agglomerative']:
         raise ValueError(f"Unsupported clustering method: {method}. Supported methods are 'dbscan', 'meanshift', and 'kmeans'.")
     
     prediction_scores = prediction_scores.reshape(-1, 1)
@@ -263,7 +264,7 @@ def compute_clusters(
         bgmm = BayesianGaussianMixture(
             n_components=max(len(high_score_points), 1) - 1, 
             random_state=42,
-            covariance_type='full'
+            covariance_type='spherical',
         )
 
         bgmm.fit(high_score_points)
@@ -273,34 +274,74 @@ def compute_clusters(
         clustering = BayesianGaussianMixture(
             n_components=active_clusters, 
             random_state=42,
-            covariance_type='full'
+            covariance_type='spherical',
         )
+    elif method == 'pca+gmm+agglomerative':
+        assert embeddings_path is not None, "embeddings_path must be provided for 'gmm+agglomerative' method"
+        
+        embeddings = np.load(embeddings_path)
+
+        if embeddings.shape[0] != stacked.shape[0]:
+            print('Mismatch between number of embeddings and number of points')
+            return -1 * np.ones(len(points), dtype=int)
+        
+        high_score_points_embeddings = embeddings[high_score_mask]
+
+        from sklearn.mixture import BayesianGaussianMixture
+        from sklearn.cluster import AgglomerativeClustering
+        from sklearn.decomposition import PCA
+
+        pca = PCA(n_components=min(5, high_score_points_embeddings.shape[0]), random_state=42)
+        projections = pca.fit_transform(high_score_points_embeddings)
+
+        concatenated_features =  np.concatenate((projections, high_score_points), axis=1)
+
+        bgmm = BayesianGaussianMixture(
+            n_components=len(concatenated_features), 
+            random_state=42,
+            covariance_type='spherical',
+            weight_concentration_prior=1e-15,
+        )   
+
+        bgmm.fit(concatenated_features)    
+
+        active_clusters = sum(bgmm.weights_ > 0.1)
+
+        from sklearn.cluster import AgglomerativeClustering
+        clustering = AgglomerativeClustering(n_clusters=max(active_clusters, 1), linkage='single')
+
 
     labels = clustering.fit_predict(high_score_points)
 
-    if method == 'gmm' and postprocess:
+    if merge_threshold is not None:
         from scipy.spatial.distance import cdist
         from scipy.sparse.csgraph import connected_components
-        centers = clustering.means_
+
+        if method == 'gmm':
+            centers = clustering.means_ 
+        else:
+            centers = []
+            for label in np.unique(labels):
+                if label == -1:
+                    continue
+                cluster_residues = np.where(labels == label)[0]
+                assert len(labels) == len(high_score_points), "Labels length must match high_score_points length"
+                centers.append(np.mean(high_score_points[cluster_residues], axis=0))
         
-        # 2. Define your merging threshold (in Angstroms)
-        # 12-15 Angstroms is usually a good size for a binding pocket radius
-        MERGE_THRESHOLD = 12.0 
-        
-        # 3. Calculate distance between all cluster centers
-        # specific shape: (n_clusters, n_clusters)
+        # Calculate distance between all cluster centers
+        # shape: (n_clusters, n_clusters)
         distances = cdist(centers, centers)
         
-        # 4. Create an adjacency matrix (True if close, False if far)
+        # Create an adjacency matrix (True if close, False if far)
         # This creates a "graph" where clusters are nodes and closeness is an edge
-        adjacency_matrix = distances < MERGE_THRESHOLD
+        adjacency_matrix = distances < merge_threshold
         
-        # 5. Find connected components (groups of clusters to merge)
+        # Find connected components (groups of clusters to merge)
         # n_merged: total number of new super-clusters
         # new_mapping: array where index is old label, value is new label
         n_merged, new_mapping = connected_components(adjacency_matrix, directed=False)
         
-        # 6. Apply the new mapping to your data points
+        # Apply the new mapping to your data points
         final_labels = new_mapping[labels]
         labels = final_labels
     

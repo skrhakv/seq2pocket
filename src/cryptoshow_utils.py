@@ -1,4 +1,5 @@
 import numpy as np
+from multipledispatch import dispatch
 
 CIF_FILES_PATH = '/home/vit/Projects/deeplife-project/data/cif_files'
 
@@ -56,7 +57,7 @@ def map_auth_to_mmcif_numbering(pdb_id: str, chain_id: str, binding_residues: se
 
     return mapped_binding_residues, sequence
 
-def map_mmcif_numbering_to_auth(pdb_id: str, chain_id: str, binding_residues: np.ndarray, auth=True) -> list[int]:
+def map_mmcif_numbering_to_auth(pdb_id: str, chain_id: str, binding_residues: np.ndarray, auth=True, binding_scores=None) -> list[int]:
     """
     Map the binding residues from mmCIF numbering (zero-based) to the auth labeling.
     Args:
@@ -71,6 +72,9 @@ def map_mmcif_numbering_to_auth(pdb_id: str, chain_id: str, binding_residues: np
     from biotite.structure.io.pdbx import get_structure
     from biotite.structure import get_residues
 
+    if binding_scores is not None:
+        assert len(binding_residues) == len(binding_scores), "Length of binding residues and binding scores must be the same"
+    
     cif_file_path = rcsb.fetch(pdb_id, "cif", CIF_FILES_PATH)
     cif_file = pdbx.CIFFile.read(cif_file_path)
     
@@ -81,14 +85,21 @@ def map_mmcif_numbering_to_auth(pdb_id: str, chain_id: str, binding_residues: np
     residue_ids, _ = get_residues(protein)
 
     mapped_binding_residues = []
+    scores = []
     for i in range(len(residue_ids)):
-        residue_id = int(residue_ids[i])
 
-        if i in binding_residues:
+        residue_index = np.where(binding_residues == i)[0]
+        if len(residue_index) > 0:
+            residue_id = int(residue_ids[i])
             mapped_binding_residues.append(residue_id)
+            if binding_scores is not None:
+                scores.append(binding_scores[residue_index[0]])
 
-    return mapped_binding_residues
+    if binding_scores is None:
+        return mapped_binding_residues
+    return mapped_binding_residues, scores
 
+@dispatch(np.ndarray, list, list)
 def compute_center_distance(points: np.ndarray, expected_pocket_ids: list[int], actual_pocket_ids: list[int]) -> float:
     """
     Compute the distance from the predicted pocket center to the expected pocket center.
@@ -103,6 +114,23 @@ def compute_center_distance(points: np.ndarray, expected_pocket_ids: list[int], 
     expected_coords = points[expected_pocket_ids].mean(axis=0)
     actual_coords = points[actual_pocket_ids].mean(axis=0)
 
+    dist = np.linalg.norm(expected_coords - actual_coords)
+    return dist
+
+@dispatch(np.ndarray, np.ndarray)
+def compute_center_distance(points1: np.ndarray, points2: np.ndarray) -> float:
+    """
+    Compute the distance from the predicted pocket center to the expected pocket center.
+
+    Args:
+        points (np.ndarray): Array of shape (N, 3) containing the coordinates of the points.
+        expected_pocket_ids (list[int]): List of indices corresponding to the expected pocket.
+        actual_pocket_ids (list[int]): List of indices corresponding to the predicted pocket.
+    Returns:
+        float: The DCC value, which is the distance from the predicted pocket center to the ligand center.
+    """
+    expected_coords = points1.mean(axis=0)
+    actual_coords = points2.mean(axis=0)
     dist = np.linalg.norm(expected_coords - actual_coords)
     return dist
 

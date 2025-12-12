@@ -99,6 +99,40 @@ def map_mmcif_numbering_to_auth(pdb_id: str, chain_id: str, binding_residues: np
         return mapped_binding_residues
     return mapped_binding_residues, scores
 
+def map_mmcif_numbering_to_auth_array(pdb_id: str, chain_id: str, binding_residues_list: list[np.ndarray], auth=True) -> list[int]:
+    """
+    Map the binding residues from mmCIF numbering (zero-based) to the auth labeling.
+    Args:
+        pdb_id (str): PDB ID of the protein.
+        chain_id (str): Chain ID of the protein.
+        binding_residues (np.ndarray): Set of binding residues in the PDB numbering.
+    Returns:
+        list[int]: List of binding residues in the auth labeling.
+    """
+    import biotite.database.rcsb as rcsb
+    import biotite.structure.io.pdbx as pdbx
+    from biotite.structure.io.pdbx import get_structure
+    from biotite.structure import get_residues
+    
+    cif_file_path = rcsb.fetch(pdb_id, "cif", CIF_FILES_PATH)
+    cif_file = pdbx.CIFFile.read(cif_file_path)
+    
+    protein = get_structure(cif_file, model=1, use_author_fields=auth)
+    protein = protein[(protein.atom_name == "CA") 
+                        & (protein.element == "C") 
+                        & (protein.chain_id == chain_id) ]
+    residue_ids, _ = get_residues(protein)
+
+    mapped_binding_residues = [[] for _ in range(len(binding_residues_list))]
+    for i in range(len(residue_ids)):
+        for binding_site_index, binding_residues in enumerate(binding_residues_list):
+            residue_index = np.where(binding_residues == i)[0]
+            if len(residue_index) > 0:
+                residue_id = int(residue_ids[i])
+                mapped_binding_residues[binding_site_index].append(residue_id)
+
+    return mapped_binding_residues
+
 @dispatch(np.ndarray, list, list)
 def compute_center_distance(points: np.ndarray, expected_pocket_ids: list[int], actual_pocket_ids: list[int]) -> float:
     """

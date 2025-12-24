@@ -130,7 +130,12 @@ PREDICTED_RESIDUE_RADIUS_DISTANCE_THRESHOLD = 10 # in Angstroms; for each predic
 CANDIDATE_RESIDUE_SURROUNDING_RADIUS_THRESHOLD = 15 # in Angstroms; for each candidate residue that is considered for inclusion into the binding site, we define the surrounding binding site respresentation as 
                                                     # the mean of embeddings of all predicted binding residues within this distance
 
-def process_single_sequence(structure_name: str, chain_id: str, binding_residues_indices: np.ndarray, embedding_path: str, distance_matrix: np.ndarray):
+def process_single_sequence(structure_name: str, 
+                            chain_id: str, 
+                            binding_residues_indices: np.ndarray, 
+                            embedding_path: str, 
+                            distance_matrix: np.ndarray,
+                            candidate_radius_threshold=CANDIDATE_RESIDUE_SURROUNDING_RADIUS_THRESHOLD):
     id = structure_name.lower() + chain_id
     if not os.path.exists(embedding_path):
         raise FileNotFoundError(f'Embedding file for {id} not found in {embedding_path}')
@@ -262,7 +267,7 @@ def compute_clusters(
 
         # get the optimal number of components
         bgmm = BayesianGaussianMixture(
-            n_components=max(len(high_score_points), 1) - 1, 
+            n_components=max(len(high_score_points) - 1, 1), 
             random_state=42,
             covariance_type='spherical',
         )
@@ -416,3 +421,52 @@ def compute_prediction(sequence: str, emb_path: str, model, tokenizer) -> np.nda
     np.save(save_path, final_embeddings)
 
     return np.array(final_output).flatten()
+
+
+def compute_esm_embeddings(sequence: str, emb_path: str, device) -> np.ndarray:
+    """
+    Compute the ESM-2 embeddings for a given sequence.
+
+    Args:
+        sequence (str): Sequence of amino acids to be embedded.
+        emb_path (str): Path to save the embeddings.
+        device: Device to run the model on.
+
+    Returns:
+        np.ndarray: The computed embeddings for each residue.
+    """
+    import torch
+    from transformers import AutoModel, AutoTokenizer
+
+    model_name = "facebook/esm2_t33_3B_UR50D"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name).to(device)
+    model.eval()
+
+    all_embeddings = []
+
+    # Process sequence in chunks of SEQUENCE_MAX_LENGTH
+    for i in range(0, len(sequence), SEQUENCE_MAX_LENGTH):
+        processed_sequence = sequence[i : i + SEQUENCE_MAX_LENGTH]
+
+        tokenized = tokenizer(
+            processed_sequence, max_length=MAX_LENGTH, padding="max_length", truncation=True, return_tensors="pt"
+        )
+        tokenized = {k: v.to(device) for k, v in tokenized.items()}
+
+        # embeddings
+        with torch.no_grad():
+            llm_output = model(input_ids=tokenized["input_ids"], attention_mask=tokenized["attention_mask"])
+            embeddings = llm_output.last_hidden_state  # shape: (1, seq_len, hidden_dim)
+
+        embeddings_np = embeddings.squeeze(0).detach().cpu().numpy()
+        mask = tokenized["attention_mask"].squeeze(0).detach().cpu().numpy().astype(bool)
+        embeddings_np = embeddings_np[mask][1:-1]  # exclude [CLS], [SEP]
+        all_embeddings.append(embeddings_np)
+
+    # save the concatenated embeddings for the entire sequence
+    final_embeddings = np.concatenate(all_embeddings, axis=0)
+    save_path = os.path.join(emb_path)
+    np.save(save_path, final_embeddings)
+
+    return final_embeddings

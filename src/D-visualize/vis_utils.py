@@ -1,3 +1,4 @@
+import os
 import sys
 import numpy as np
 
@@ -14,6 +15,8 @@ def read_predictions(data_path: str, protein_ids: list[str]) -> dict[str, np.nda
     import pickle
     predictions = {}
     for protein_id in protein_ids:
+        if f'{protein_id}.pkl' not in os.listdir(data_path):
+            continue
         filename = protein_id.replace('_', '')
         with open(f'{data_path}/{filename}.pkl', 'rb') as f:
             predictions[protein_id] = pickle.load(f)

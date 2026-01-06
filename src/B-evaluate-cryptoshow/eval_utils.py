@@ -154,7 +154,7 @@ def process_single_sequence(structure_name: str,
         candidate_residues_indices.update(set(list(close_residues_indices)) - set(list(binding_residues_indices)))
 
     for residue_idx in candidate_residues_indices:
-        close_residues_indices = np.where(distance_matrix[residue_idx] < CANDIDATE_RESIDUE_SURROUNDING_RADIUS_THRESHOLD)[0]
+        close_residues_indices = np.where(distance_matrix[residue_idx] < candidate_radius_threshold)[0]
         close_binding_residues_indices = np.intersect1d(close_residues_indices, binding_residues_indices)
 
         concatenated_embedding = np.concatenate((embedding[residue_idx], np.mean(embedding[close_binding_residues_indices], axis=0)))

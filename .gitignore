@@ -10,3 +10,4 @@ src/D-visualize/evaluation-output,DCC<4.txt
 src/D-visualize/evaluation-output.txt
 src/G-manuscript-stats/clustering-method-comparison.png
 src/F-clustering/img
+src/E-regular-binding-site-predictor/train/decision-thresholds.ipynb

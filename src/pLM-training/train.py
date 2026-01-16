@@ -13,7 +13,8 @@ import warnings
 
 sys.path.append('/home/skrhakv/cryptic-nn/src')
 import baseline_utils
-import finetuning_utils
+import finetuning_utils # download from https://github.com/skrhakv/cryptic-finetuning/blob/master/src/finetuning_utils.py
+
 
 torch.manual_seed(0)
 

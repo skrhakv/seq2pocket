@@ -1,0 +1,18 @@
+# python 3.12
+scikit-learn
+numpy
+ipykernel
+requests
+transformers==4.48.1
+torch==2.6.0
+biopython
+jupyter
+seaborn
+biotite==0.40.0
+pandas
+rdkit
+scipy
+biopython
+seaborn
+matplotlib
+scikit-learn

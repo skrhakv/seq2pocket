@@ -45,7 +45,7 @@ TODO: requirements.txt file
 - Training data: TODO: link owncloud (embeddings, CSV data)
 - Model Weights: TODO: link owncloud
 
-TODO: What to download later: scPDB non enhanced model, embeddings, CSV data
+TODO: What to download later: scPDB non enhanced model, embeddings, CSV data, generate pymol scripts
 
 ## Contact us
 If you have any questions regarding the usage of the framework, comparing your method against the benchmark, or if you have any suggestions, please feel free to contact us by raising [an issue!](https://github.com/skrhakv/seq2pocket/issues)

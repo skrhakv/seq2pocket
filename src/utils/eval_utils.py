@@ -13,7 +13,7 @@ sys.path.append('/home/skrhakv/cryptoshow-analysis/src/utils')
 sys.path.append('/home/vit/Projects/cryptoshow-analysis/src/utils')
 import cryptoshow_utils
 
-DATA_PATH = '/home/skrhakv/cryptoshow-analysis/data/A-cluster-ligysis-data/cryptobench-clustered-binding-sites.txt'
+DATA_PATH = '/home/skrhakv/cryptoshow-analysis/data/A-cluster-ligysis-data/cryptobench-clustered-binding-sites.csv'
 SMOOTHING_DECISION_THRESHOLD = 0.4 # see src/C-optimize-smoother/classifier-for-cryptoshow.ipynb (https://github.com/skrhakv/cryptic-finetuning)
 DCC_THRESHOLD = 4.0  # in Angstroms
 

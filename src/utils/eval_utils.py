@@ -9,8 +9,8 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
-sys.path.append('/home/skrhakv/cryptoshow-analysis/src')
-sys.path.append('/home/vit/Projects/cryptoshow-analysis/src')
+sys.path.append('/home/skrhakv/cryptoshow-analysis/src/utils')
+sys.path.append('/home/vit/Projects/cryptoshow-analysis/src/utils')
 import cryptoshow_utils
 
 DATA_PATH = '/home/skrhakv/cryptoshow-analysis/data/A-cluster-ligysis-data/cryptobench-clustered-binding-sites.txt'

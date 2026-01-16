@@ -70,8 +70,8 @@ def draw_pocket_center_lines(binding_residues, predicted_residues, protein_id):
 DCC_THRESHOLD = 4.0  # Angstroms
 
 def compute_DCCs(protein_id, true_binding_residues, predicted_binding_residues, coordinates_dir=COORDINATES_DIR):
-    sys.path.append('/home/skrhakv/cryptoshow-analysis/src')
-    sys.path.append('/home/vit/Projects/cryptoshow-analysis/src')
+    sys.path.append('/home/skrhakv/cryptoshow-analysis/src/utils')
+    sys.path.append('/home/vit/Projects/cryptoshow-analysis/src/utils')
     import cryptoshow_utils
     
     DCCs = []
@@ -93,8 +93,8 @@ def compute_avg_successful_pocket_size(binding_pockets, predicted_pockets, coord
     for protein_id in binding_pockets.keys(): 
         this_binding_residues = binding_pockets[protein_id]
         this_p2rank_predictions = predicted_pockets[protein_id]
-        sys.path.append('/home/skrhakv/cryptoshow-analysis/src')
-        sys.path.append('/home/vit/Projects/cryptoshow-analysis/src')
+        sys.path.append('/home/skrhakv/cryptoshow-analysis/src/utils')
+        sys.path.append('/home/vit/Projects/cryptoshow-analysis/src/utils')
         import cryptoshow_utils
 
 

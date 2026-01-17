@@ -2,7 +2,7 @@ import numpy as np
 from multipledispatch import dispatch
 
 CIF_FILES_PATH = '/home/vit/Projects/deeplife-project/data/cif_files'
-# CIF_FILES_PATH = '/home/skrhakv/cryptoshow-analysis/data/F-clustering/cif_files'
+# CIF_FILES_PATH = '/home/skrhakv/cryptoshow-analysis/data/cif_files'
 
 mapping = {'Aba': 'A', 'Ace': 'X', 'Acr': 'X', 'Ala': 'A', 'Aly': 'K', 'Arg': 'R', 'Asn': 'N', 'Asp': 'D', 'Cas': 'C',
            'Ccs': 'C', 'Cme': 'C', 'Csd': 'C', 'Cso': 'C', 'Csx': 'C', 'Cys': 'C', 'Dal': 'A', 'Dbb': 'T', 'Dbu': 'T',

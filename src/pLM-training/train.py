@@ -22,16 +22,14 @@ warnings.filterwarnings('ignore')
 torch.manual_seed(42)
 
 MODEL_NAME = 'facebook/esm2_t36_3B_UR50D'
-DATASET = 'cryptobench'
-DATA_PATH = f'/home/skrhakv/cryptic-nn/data/{DATASET}'
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 finetuned_model = finetuning_utils.FinetunedEsmModel(MODEL_NAME).half().to(device)
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
-train_dataset = finetuning_utils.process_sequence_dataset('/home/skrhakv/cryptoshow-analysis/data/E-regular-binding-site-predictor/scPDB_enhanced_binding_sites_translated.csv', tokenizer)
-val_dataset = finetuning_utils.process_sequence_dataset('/home/skrhakv/cryptoshow-analysis/data/E-regular-binding-site-predictor/ligysis_without_unobserved.csv', tokenizer) 
+train_dataset = finetuning_utils.process_sequence_dataset('/home/skrhakv/cryptoshow-analysis/data/data-extraction/scPDB_enhanced_binding_sites_translated.csv', tokenizer)
+val_dataset = finetuning_utils.process_sequence_dataset('/home/skrhakv/cryptoshow-analysis/data/data-extraction/ligysis_without_unobserved.csv', tokenizer) 
 
 partial_collate_fn = functools.partial(finetuning_utils.collate_fn, tokenizer=tokenizer)
 
@@ -145,5 +143,5 @@ for epoch in range(EPOCHS):
     train_losses.append(sum(batch_losses) / len(batch_losses))
     print(f"Epoch: {epoch} | Loss: {loss:.5f}, Accuracy: {test_acc:.2f}% | Test loss: {test_loss:.5f}, AUC: {roc_auc:.4f}, MCC: {mcc:.4f}, F1: {f1:.4f}, AUPRC: {auprc:.4f}, sum: {sum(predictions.to(dtype=torch.int))}")
 
-OUTPUT_PATH = '/home/skrhakv/cryptoshow-analysis/data/E-regular-binding-site-predictor/model-enhanced-scPDB.pt'
+OUTPUT_PATH = '/home/skrhakv/cryptoshow-analysis/data/models/gbs-model-enhanced-scPDB.pt'
 torch.save(finetuned_model, OUTPUT_PATH)

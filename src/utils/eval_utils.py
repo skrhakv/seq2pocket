@@ -19,7 +19,7 @@ DCC_THRESHOLD = 4.0  # in Angstroms
 
 
 def read_test_binding_residues(data_path=DATA_PATH, pocket_types=['CRYPTIC']) -> set[int]:
-    cryptic_binding_residues = {}
+    binding_residues = {}
     sequences = {}
 
     with open(data_path, 'r') as csvfile:
@@ -34,12 +34,12 @@ def read_test_binding_residues(data_path=DATA_PATH, pocket_types=['CRYPTIC']) ->
 
             binding_residue_indices = [f'{chain_id}_{int(i[1:])}'for i in row[3].split(' ')]
             if row[2] in pocket_types:
-                if protein_id not in cryptic_binding_residues:
-                    cryptic_binding_residues[protein_id] = []
-                cryptic_binding_residues[protein_id].append(binding_residue_indices)
+                if protein_id not in binding_residues:
+                    binding_residues[protein_id] = []
+                binding_residues[protein_id].append(binding_residue_indices)
             sequences[protein_id] = sequence
 
-    return cryptic_binding_residues, sequences
+    return binding_residues, sequences
 
 def print_plots(DCCs, coverages, dice_coefficients, binding_prediction_scores, number_of_pockets, model, dcc_threshold=DCC_THRESHOLD):
     sns.set_style("whitegrid")

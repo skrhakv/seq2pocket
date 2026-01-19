@@ -36,7 +36,7 @@ The source code is located in the `src/` folder, which contains the following su
 The enhancement of the sc-PDB dataset is implemented in separate branch named ['scPDB_enhancement' in the CryptoBench repository](https://github.com/skrhakv/CryptoBench/tree/scPDB_enhancement).
 
 ## Installation
-TODO: requirements.txt file 
+To run the scripts, it might be useful to install the packages specified in `requirements.txt`.
 
 ## Data and Materials
 

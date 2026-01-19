@@ -1,6 +1,6 @@
 # Seq2Pocket: From Sequence-Level pLM Predictions to 3D Structural Pockets
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/skrhakv/seq2pocket/blob/master/LICENSE)
-[![Dataset](https://img.shields.io/badge/Dataset%20on%20OSF-10.17605%2FOSF.IO%2FPZ4A9%20-blue.svg)](https://zenodo.org/records/18271517)
+[![Dataset](https://img.shields.io/badge/Dataset%20on%20Zenodo-10.5281%2Fzenodo.18271516%20-blue.svg)](https://zenodo.org/records/18271517)
 
 **Seq2Pocket** is a framework for **protein ligand binding site (LBS) prediction** that maps sequence-level predictions to 3D structural pockets. The method utilizes finetuned protein language model (pLM) to identify binding residues and restores pocket continuity through a two-step structural refinement process:
 1. **Embedding-Supported Smoothing:** An additional classifier leverages latent embeddings of neighboring residues to fill in gaps and resolve spatial incompletion inherent in independent residue-wise predictions.

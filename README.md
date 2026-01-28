@@ -42,7 +42,7 @@ To run the scripts, it might be useful to install the packages specified in `req
 
 - scPDB-Enhanced: [Zenodo repository](https://zenodo.org/records/18271517)
   - An updated version of the scPDB dataset containing experimentally observed binding sites and ions omitted in the original release.
-- Data and model weights: [Storage link](https://cunicz-my.sharepoint.com/my?id=%2Fpersonal%2F99575159_cuni_cz%2FDocuments%2Fseq2pocket-data.tar.gz&parent=%2Fpersonal%2F99575159_cuni_cz%2FDocuments&ga=1)
+- Data and model weights: [Storage link](https://s3.cl4.du.cesnet.cz/a93fcece52e6da0dd335b4459d47b0aebb74836b:share/seq2pocket.tar.gz)
 
 ## Contact us
 If you have any questions regarding the usage of the framework, comparing your method against the benchmark, or if you have any suggestions, please feel free to contact us by raising [an issue!](https://github.com/skrhakv/seq2pocket/issues)

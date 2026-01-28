@@ -14,7 +14,7 @@
 ***The Seq2Pocket Pipeline.** Our framework takes residue-level probabilities from a finetuned pLM, applies an embedding-supported smoothing classifier to restore pocket continuity, and utilizes a surface-based clustering to define final 3D binding regions. Here, the finetuned pLM correctly identifies the Staurosporine inhibitor binding site on the human C-terminal Src kinase (PDB ID = 1bygA).*
 
 ## Availability
-You can check out the model for cryptic binding site prediction using on this website: [https://cryptoshow.ksi.projekty.ms.mff.cuni.cz/](https://cryptoshow.ksi.projekty.ms.mff.cuni.cz/)
+You can check out the model for cryptic binding site prediction using on this website: [https://cryptoshow.cz/](https://cryptoshow.cz/)
 
 ## Framework Components
 The **Seq2Pocket** workflow is divided into three main stages:

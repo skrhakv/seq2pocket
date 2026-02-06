@@ -47,5 +47,29 @@ To run the scripts, it might be useful to install the packages specified in `req
 ## Contact us
 If you have any questions regarding the usage of the framework, comparing your method against the benchmark, or if you have any suggestions, please feel free to contact us by raising [an issue!](https://github.com/skrhakv/seq2pocket/issues)
 
+## How to cite
+If you find our work useful, please cite [the paper](https://www.biorxiv.org/content/10.64898/2026.01.28.702257v1):
+
+- *Vít Škrhák, Lukáš Polák, Marian Novotný, and David Hoksza. 2026. Seq2Pocket: Augmenting protein language models for spatially consistent binding site prediction. bioRxiv. [https://doi.org/10.64898/2026.01.28.702257](https://doi.org/10.64898/2026.01.28.702257)*
+
+
+or, if you prefer the `BibTeX` format:
+
+```
+@article {2026.01.28.702257,
+	author = {Škrhák, Vít and Polák, Lukáš and Novotný, Marian and Hoksza, David},
+	title = {Seq2Pocket: Augmenting protein language models for spatially consistent binding site prediction},
+	elocation-id = {2026.01.28.702257},
+	year = {2026},
+	doi = {10.64898/2026.01.28.702257},
+	publisher = {Cold Spring Harbor Laboratory},
+	abstract = {Protein-ligand binding site prediction (LBS) is important for many domains including computational drug discovery, where, as in other tasks, protein language models (pLMs) have shown a great promise. In their application to LBS, the pLM classifies each amino acid as binding or not. Subsequently, for the purposes of downstream analysis, these predictions are mapped onto the structure, forming structure-continuous pockets. However, their residue-oriented nature often results in spatially fragmented predictions. We present a comprehensive framework (Seq2Pocket) that addresses this by combining finetuned pLM with an embedding-supported smoothing classifier and an optimized clustering strategy. While finetuning on our enhanced scPDB dataset yields state-of-the-art results, outperforming existing predictors by up to 11\% in DCC recall, the smoothing classifier restores pocket continuity. Next, we introduce the Pocket Fragmentation Index (PFI) and use it to select a clustering approach that preserves a consistent mapping between predictions and ground-truth pockets. Validated on the LIGYSIS and CryptoBench benchmarks, our approach ensures that pLM-based predictions are not only statistically accurate but also useful for downstream drug discovery, while maintaining state-of-the-art performance.Competing Interest StatementThe authors have declared no competing interest.},
+	URL = {https://www.biorxiv.org/content/early/2026/01/31/2026.01.28.702257},
+	eprint = {https://www.biorxiv.org/content/early/2026/01/31/2026.01.28.702257.full.pdf},
+	journal = {bioRxiv}
+}
+```
+
+
 ## License
 This source code is licensed under the [MIT license](https://github.com/skrhakv/seq2pocket/blob/master/LICENSE).

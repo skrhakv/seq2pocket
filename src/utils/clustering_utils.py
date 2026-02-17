@@ -166,7 +166,7 @@ def keep_only_standard_residues(structure):
 def get_protein_surface_points(pdb_id, chain_id, predicted_binding_sites):
     p = MMCIFParser(QUIET=1)
     struct = p.get_structure("protein", f"{CIF_FILES}/{pdb_id}.cif")
-    struct = struct[0][chain_id]  # Get first model, chain A
+    struct = struct[0][chain_id]
     struct = keep_only_standard_residues(struct)
 
     # compute SASA

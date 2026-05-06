@@ -6,19 +6,17 @@
 import csv
 import sys
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
 import os
-sys.path.append('/home/skrhakv/cryptoshow-analysis/src/utils')
+sys.path.append('/home/skrhakv/Projects/seq2pocket/src/utils')
 sys.path.append('/home/vit/Projects/cryptoshow-analysis/src/utils')
 import cryptoshow_utils
 
-DATA_PATH = '/home/skrhakv/cryptoshow-analysis/data/A-cluster-ligysis-data/cryptobench-clustered-binding-sites.csv'
 SMOOTHING_DECISION_THRESHOLD = 0.4 # see src/C-optimize-smoother/classifier-for-cryptoshow.ipynb (https://github.com/skrhakv/cryptic-finetuning)
 DCC_THRESHOLD = 4.0  # in Angstroms
 
 
-def read_test_binding_residues(data_path=DATA_PATH, pocket_types=['CRYPTIC']) -> set[int]:
+def read_test_binding_residues(data_path, pocket_types=['CRYPTIC']) -> set[int]:
     binding_residues = {}
     sequences = {}
 
@@ -42,6 +40,8 @@ def read_test_binding_residues(data_path=DATA_PATH, pocket_types=['CRYPTIC']) ->
     return binding_residues, sequences
 
 def print_plots(DCCs, coverages, dice_coefficients, binding_prediction_scores, number_of_pockets, model, dcc_threshold=DCC_THRESHOLD):
+    import seaborn as sns
+
     sns.set_style("whitegrid")
     plt.rcParams['figure.facecolor'] = 'white'
 

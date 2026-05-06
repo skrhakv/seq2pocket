@@ -1,7 +1,7 @@
 import numpy as np
 from multipledispatch import dispatch
 
-CIF_FILES_PATH = '/home/vit/Projects/deeplife-project/data/cif_files'
+CIF_FILES_PATH = '/home/skrhakv/Projects/seq2pocket/data/cif_files'
 # CIF_FILES_PATH = '/home/skrhakv/cryptoshow-analysis/data/cif_files'
 
 mapping = {'Aba': 'A', 'Ace': 'X', 'Acr': 'X', 'Ala': 'A', 'Aly': 'K', 'Arg': 'R', 'Asn': 'N', 'Asp': 'D', 'Cas': 'C',
@@ -43,6 +43,7 @@ def map_auth_to_mmcif_numbering(pdb_id: str, chain_id: str, binding_residues: se
     protein = protein[(protein.atom_name == "CA") 
                         & (protein.element == "C") 
                         & (protein.chain_id == chain_id) ]
+    
     residue_ids, residue_types = get_residues(protein)
 
     sequence = ''

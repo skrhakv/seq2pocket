@@ -11,7 +11,7 @@ import sys
 sys.path.append('/home/skrhakv/cryptoshow-analysis/src/utils')
 import cryptoshow_utils
 
-CIF_FILES = '/home/skrhakv/cryptoshow-analysis/data/cif_files'
+CIF_FILES = '/home/skrhakv/Projects/seq2pocket/data/cif_files'
 POINTS_DENSITY_PER_ATOM = 50
 PROBE_RADIUS = 1.6
 

@@ -38,6 +38,8 @@ The enhancement of the sc-PDB dataset is implemented in separate branch named ['
 ## Installation
 To run the scripts, it might be useful to install the packages specified in `requirements.txt`.
 
+To generate SAS points, update your biopython's SASA.py with the updated version from this repository (`SASA.py`).
+
 ## Data and Materials
 
 - scPDB-Enhanced: [Zenodo repository](https://zenodo.org/records/18271517)

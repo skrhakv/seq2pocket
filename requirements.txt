@@ -16,3 +16,4 @@ biopython
 seaborn
 matplotlib
 scikit-learn
+fair-esm

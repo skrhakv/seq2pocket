@@ -16,6 +16,9 @@
 ## Availability
 You can check out the model for cryptic binding site prediction using on this website: [https://cryptoshow.cz/](https://cryptoshow.cz/)
 
+## Run Locally
+Refer to the `/tutorial` folder for running the model locally. 
+
 ## Framework Components
 The **Seq2Pocket** workflow is divided into three main stages:
 1. **pLM Fine-tuning:** Scripts for fine-tuning ESM2-3B on ligand binding tasks.

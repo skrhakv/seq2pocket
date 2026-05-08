@@ -362,7 +362,7 @@ MAX_LENGTH = 1024
 SEQUENCE_MAX_LENGTH = MAX_LENGTH - 2
 
 
-def compute_prediction(sequence: str, emb_path: str, model, tokenizer) -> np.ndarray:
+def compute_prediction(sequence: str, model, tokenizer) -> np.ndarray:
     """
     Compute the residue-level prediction using the CryptoBench model.
 
@@ -379,7 +379,6 @@ def compute_prediction(sequence: str, emb_path: str, model, tokenizer) -> np.nda
     model.eval()
 
     sequence = str(sequence)
-    all_embeddings = []
     final_output = []
 
     # Process sequence in chunks of SEQUENCE_MAX_LENGTH
@@ -390,16 +389,6 @@ def compute_prediction(sequence: str, emb_path: str, model, tokenizer) -> np.nda
             processed_sequence, max_length=MAX_LENGTH, padding="max_length", truncation=True, return_tensors="pt"
         )
         tokenized = {k: v.to(DEVICE) for k, v in tokenized.items()}
-
-        # embeddings
-        with torch.no_grad():
-            llm_output = model.llm(input_ids=tokenized["input_ids"], attention_mask=tokenized["attention_mask"])
-            embeddings = llm_output.last_hidden_state  # shape: (1, seq_len, hidden_dim)
-
-        embeddings_np = embeddings.squeeze(0).detach().cpu().numpy()
-        mask = tokenized["attention_mask"].squeeze(0).detach().cpu().numpy().astype(bool)
-        embeddings_np = embeddings_np[mask][1:-1]  # exclude [CLS], [SEP]
-        all_embeddings.append(embeddings_np)
 
         # prediction
         with torch.no_grad():
@@ -415,58 +404,4 @@ def compute_prediction(sequence: str, emb_path: str, model, tokenizer) -> np.nda
         probabilities = torch.sigmoid(output).detach().cpu().numpy()
         final_output.extend(probabilities)
 
-    # save the concatenated embeddings for the entire sequence
-    final_embeddings = np.concatenate(all_embeddings, axis=0)
-    save_path = os.path.join(emb_path)
-    np.save(save_path, final_embeddings)
-
     return np.array(final_output).flatten()
-
-
-def compute_esm_embeddings(sequence: str, emb_path: str, device) -> np.ndarray:
-    """
-    Compute the ESM-2 embeddings for a given sequence.
-
-    Args:
-        sequence (str): Sequence of amino acids to be embedded.
-        emb_path (str): Path to save the embeddings.
-        device: Device to run the model on.
-
-    Returns:
-        np.ndarray: The computed embeddings for each residue.
-    """
-    import torch
-    from transformers import AutoModel, AutoTokenizer
-
-    model_name = "facebook/esm2_t33_3B_UR50D"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModel.from_pretrained(model_name).to(device)
-    model.eval()
-
-    all_embeddings = []
-
-    # Process sequence in chunks of SEQUENCE_MAX_LENGTH
-    for i in range(0, len(sequence), SEQUENCE_MAX_LENGTH):
-        processed_sequence = sequence[i : i + SEQUENCE_MAX_LENGTH]
-
-        tokenized = tokenizer(
-            processed_sequence, max_length=MAX_LENGTH, padding="max_length", truncation=True, return_tensors="pt"
-        )
-        tokenized = {k: v.to(device) for k, v in tokenized.items()}
-
-        # embeddings
-        with torch.no_grad():
-            llm_output = model(input_ids=tokenized["input_ids"], attention_mask=tokenized["attention_mask"])
-            embeddings = llm_output.last_hidden_state  # shape: (1, seq_len, hidden_dim)
-
-        embeddings_np = embeddings.squeeze(0).detach().cpu().numpy()
-        mask = tokenized["attention_mask"].squeeze(0).detach().cpu().numpy().astype(bool)
-        embeddings_np = embeddings_np[mask][1:-1]  # exclude [CLS], [SEP]
-        all_embeddings.append(embeddings_np)
-
-    # save the concatenated embeddings for the entire sequence
-    final_embeddings = np.concatenate(all_embeddings, axis=0)
-    save_path = os.path.join(emb_path)
-    np.save(save_path, final_embeddings)
-
-    return final_embeddings

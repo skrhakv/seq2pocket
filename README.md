@@ -2,7 +2,7 @@
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/skrhakv/seq2pocket/blob/master/LICENSE)
 [![Dataset](https://img.shields.io/badge/Dataset%20on%20Zenodo-10.5281%2Fzenodo.18271516%20-blue.svg)](https://zenodo.org/records/18271517)
 
-**Seq2Pocket** is a framework for **protein ligand binding site (LBS) prediction** that maps sequence-level predictions to 3D structural pockets. The method utilizes finetuned protein language model (pLM) to identify binding residues and restores pocket continuity through a two-step structural refinement process:
+**Seq2Pocket** is a framework for **protein ligand binding site (LBS) prediction** that maps sequence-level predictions to 3D structural pockets. The method utilizes finetuned protein language model (pLM) to identify binding residues and restores pocket continuity through a two-step refinement process:
 1. **Embedding-Supported Smoothing:** An additional classifier leverages latent embeddings of neighboring residues to fill in gaps and resolve spatial incompletion inherent in independent residue-wise predictions.
 
 2. **Structure-based Clustering:** A surface-based clustering that utilizes Solvent Accessible Surface (SAS) points to group refined predictions into distinct, biologically relevant 3D pockets.
@@ -14,10 +14,15 @@
 ***The Seq2Pocket Pipeline.** Our framework takes residue-level probabilities from a finetuned pLM, applies an embedding-supported smoothing classifier to restore pocket continuity, and utilizes a surface-based clustering to define final 3D binding regions. Here, the finetuned pLM correctly identifies the Staurosporine inhibitor binding site on the human C-terminal Src kinase (PDB ID = 1bygA).*
 
 ## Availability
-You can check out the model for cryptic binding site prediction using on this website: [https://cryptoshow.cz/](https://cryptoshow.cz/)
+You can check out the model for cryptic binding site prediction using on this website: [https://cryptoshow.cz/](https://cryptoshow.cz/), the model for general binding site prediction can be accessed here: [https://seq2pocket.projekty.ms.mff.cuni.cz/](https://seq2pocket.projekty.ms.mff.cuni.cz/).
 
-## Run Locally
-Refer to the `/tutorial` folder for running the model locally. 
+## Run Locally & Installation
+Refer to the `/tutorial` folder for running the model locally.
+
+To run the scripts, it might be useful to install the packages specified in `requirements.txt`.
+
+To generate SAS points, update your biopython's `SASA.py` with the updated version from this repository (`/SASA.py`).
+
 
 ## Framework Components
 The **Seq2Pocket** workflow is divided into three main stages:
@@ -38,10 +43,6 @@ The source code is located in the `src/` folder, which contains the following su
 
 The enhancement of the sc-PDB dataset is implemented in separate branch named ['scPDB_enhancement' in the CryptoBench repository](https://github.com/skrhakv/CryptoBench/tree/scPDB_enhancement).
 
-## Installation
-To run the scripts, it might be useful to install the packages specified in `requirements.txt`.
-
-To generate SAS points, update your biopython's SASA.py with the updated version from this repository (`SASA.py`).
 
 ## Data and Materials
 
@@ -68,7 +69,6 @@ or, if you prefer the `BibTeX` format:
 	year = {2026},
 	doi = {10.64898/2026.01.28.702257},
 	publisher = {Cold Spring Harbor Laboratory},
-	abstract = {Protein-ligand binding site prediction (LBS) is important for many domains including computational drug discovery, where, as in other tasks, protein language models (pLMs) have shown a great promise. In their application to LBS, the pLM classifies each amino acid as binding or not. Subsequently, for the purposes of downstream analysis, these predictions are mapped onto the structure, forming structure-continuous pockets. However, their residue-oriented nature often results in spatially fragmented predictions. We present a comprehensive framework (Seq2Pocket) that addresses this by combining finetuned pLM with an embedding-supported smoothing classifier and an optimized clustering strategy. While finetuning on our enhanced scPDB dataset yields state-of-the-art results, outperforming existing predictors by up to 11\% in DCC recall, the smoothing classifier restores pocket continuity. Next, we introduce the Pocket Fragmentation Index (PFI) and use it to select a clustering approach that preserves a consistent mapping between predictions and ground-truth pockets. Validated on the LIGYSIS and CryptoBench benchmarks, our approach ensures that pLM-based predictions are not only statistically accurate but also useful for downstream drug discovery, while maintaining state-of-the-art performance.Competing Interest StatementThe authors have declared no competing interest.},
 	URL = {https://www.biorxiv.org/content/early/2026/01/31/2026.01.28.702257},
 	eprint = {https://www.biorxiv.org/content/early/2026/01/31/2026.01.28.702257.full.pdf},
 	journal = {bioRxiv}

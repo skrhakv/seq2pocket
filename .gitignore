@@ -7,3 +7,4 @@ seq2pocket_venv/
 *.pyc
 data
 tutorial/__pycache__
+3di_sequence

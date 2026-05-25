@@ -69,8 +69,8 @@ or, if you prefer the `BibTeX` format:
 	year = {2026},
 	doi = {10.64898/2026.01.28.702257},
 	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/early/2026/01/31/2026.01.28.702257},
-	eprint = {https://www.biorxiv.org/content/early/2026/01/31/2026.01.28.702257.full.pdf},
+	URL = {https://www.biorxiv.org/content/early/2026/05/11/2026.01.28.702257},
+	eprint = {https://www.biorxiv.org/content/early/2026/05/11/2026.01.28.702257.full.pdf},
 	journal = {bioRxiv}
 }
 ```

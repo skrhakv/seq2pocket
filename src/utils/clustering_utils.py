@@ -15,7 +15,7 @@ CIF_FILES = '/home/skrhakv/Projects/seq2pocket/data/cif_files'
 POINTS_DENSITY_PER_ATOM = 50
 PROBE_RADIUS = 1.6
 
-def execute_atom_clustering(pdb_id, chain_id, predictions, probabilities, eps=10):
+def execute_atom_clustering(pdb_id, chain_id, predictions, probabilities, eps=10, scoring_method='mean'):
     """
     Execute atom-level clustering based on predicted binding residues.
     Args:
@@ -80,7 +80,10 @@ def execute_atom_clustering(pdb_id, chain_id, predictions, probabilities, eps=10
         if len(scores) == 0:
             final_cluster_scores.append(0.0)
         else:
-            final_cluster_scores.append(np.mean(scores))
+            if scoring_method == 'mean':
+                final_cluster_scores.append(np.mean(scores))
+            elif scoring_method == 'sum_of_squares':
+                final_cluster_scores.append(np.sum(np.square(scores)))
     cluster_scores = final_cluster_scores
 
     return clusters, residue_clusters, cluster_scores, atom_coords, residue_coords
@@ -182,24 +185,37 @@ def get_protein_surface_points(pdb_id, chain_id, predicted_binding_sites):
         # consider only residues from predicted binding sites
         residue_id = residue.get_id()[1]
         
+        representative_atom = None
         if 'CA' in residue:
-            residue_coords[residue_id] = residue['CA'].get_vector()
+            representative_atom = residue['CA']
+            residue_coords[residue_id] = representative_atom.get_vector()
         else:
             # if no CA atom, use the first atom's coordinates
-            first_atom = next(residue.get_atoms())
-            residue_coords[residue_id] = first_atom.get_vector()
+            representative_atom = next(residue.get_atoms())
+            residue_coords[residue_id] = representative_atom.get_vector()
         
         if residue.get_id()[1] not in predicted_binding_sites:
             continue
         
         # get surface points for each atom in the residue
+        number_of_surface_points = 0
         for atom in residue.get_atoms():
             atom_id = atom.get_serial_number()
+            number_of_surface_points += len(atom.sasa_points)
             surface_points.append(atom.sasa_points)
             map_surface_points_to_atom_id.extend([atom_id] * len(atom.sasa_points))
             atom_coords[atom_id] = atom.get_vector()
             map_atoms_to_residue_id[atom_id] = residue_id
 
+        # if no surface points, add the CA atom as a surface point
+        if number_of_surface_points == 0:
+            representative_atom_id = representative_atom.get_serial_number()
+            surface_points.append(representative_atom.get_vector().get_array().reshape(1, -1))
+            map_surface_points_to_atom_id.append(representative_atom_id)
+            atom_coords[representative_atom_id] = representative_atom.get_vector()
+            map_atoms_to_residue_id[representative_atom_id] = residue_id
+            
+            
     surface_points = np.vstack(surface_points)
     map_surface_points_to_atom_id = np.array(map_surface_points_to_atom_id)
     return surface_points, map_surface_points_to_atom_id, map_atoms_to_residue_id, atom_coords, residue_coords

@@ -192,9 +192,8 @@ def main():
     finetuned_model = finetuning_utils.FinetunedEsmModel(MODEL_NAME).half().to(device)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
-    train_dataset = finetuning_utils.process_sequence_dataset(
-        f'{DATA_DIRECTORY}/data-extraction/scPDB_enhanced_binding_sites_translated_filtered.csv',
-        tokenizer)
+    train_dataset = finetuning_utils.process_sequence_dataset(F'{DATA_DIRECTORY}/data-extraction/scPDB_enhanced_binding_sites_translated_filtered.csv', tokenizer)
+    # train_dataset = finetuning_utils.process_sequence_dataset(F'{DATA_DIRECTORY}/data-extraction/full_scPDB_translated_filtered.csv', tokenizer)
     val_dataset = finetuning_utils.process_sequence_dataset(
         f'{DATA_DIRECTORY}/data-extraction/ligysis_without_unobserved.csv',
         tokenizer)
@@ -330,6 +329,57 @@ def main():
               f"Test loss: {test_loss:.5f}, AUC: {roc_auc:.4f}, MCC: {mcc:.4f}, "
               f"F1: {f1:.4f}, AUPRC: {auprc:.4f}, "
               f"sum: {sum(predictions.to(dtype=torch.int))}")
+
+    # ------------------------------------------------------------------
+    # VALIDATION
+    # ------------------------------------------------------------------
+    finetuned_model.eval()
+    with torch.no_grad():
+        logits_list = []
+        labels_list = []
+
+        for batch in val_dataloader:
+            output = finetuned_model(batch)
+            labels = batch['labels'].to(device)
+            flattened_labels = labels.flatten()
+
+            cbs_logits = output.flatten()[flattened_labels != -100]
+            valid_flattened_labels = labels.flatten()[flattened_labels != -100]
+
+            logits_list.append(cbs_logits.cpu().float().detach().numpy())
+            labels_list.append(valid_flattened_labels.cpu().float().detach().numpy())
+
+            del labels, cbs_logits, valid_flattened_labels, flattened_labels
+            gc.collect()
+            torch.cuda.empty_cache()
+
+        cbs_logits = torch.tensor(np.concatenate(logits_list)).to(device)
+        valid_flattened_labels = torch.tensor(np.concatenate(labels_list)).to(device)
+
+        predictions = torch.round(torch.sigmoid(cbs_logits))
+        test_loss = loss_fn(cbs_logits, valid_flattened_labels)
+        test_losses.append(test_loss.cpu().float().detach().numpy())
+
+        test_acc = baseline_utils.accuracy_fn(y_true=valid_flattened_labels,
+                                                y_pred=predictions)
+        fpr, tpr, _ = metrics.roc_curve(
+            valid_flattened_labels.cpu().float().numpy(),
+            torch.sigmoid(cbs_logits).cpu().float().numpy())
+        roc_auc = metrics.auc(fpr, tpr)
+        mcc = metrics.matthews_corrcoef(valid_flattened_labels.cpu().float().numpy(),
+                                        predictions.cpu().float().numpy())
+        f1 = metrics.f1_score(valid_flattened_labels.cpu().float().numpy(),
+                                predictions.cpu().float().numpy(), average='weighted')
+        precision, recall, _ = metrics.precision_recall_curve(
+            valid_flattened_labels.cpu().float().numpy(),
+            torch.sigmoid(cbs_logits).cpu().float().numpy())
+        auprc = metrics.auc(recall, precision)
+    
+    print(f"Epoch: {epoch} | Loss: {loss:.5f}, Accuracy: {test_acc:.2f}% | "
+              f"Test loss: {test_loss:.5f}, AUC: {roc_auc:.4f}, MCC: {mcc:.4f}, "
+              f"F1: {f1:.4f}, AUPRC: {auprc:.4f}, "
+              f"sum: {sum(predictions.to(dtype=torch.int))}")
+
 
     torch.save(finetuned_model, args.output)
     print(f"Model saved to {args.output}")

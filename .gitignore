@@ -8,3 +8,7 @@ seq2pocket_venv/
 data
 tutorial/__pycache__
 3di_sequence
+src/pLM-training/logs/
+src/stats/rog-compactness/inference/logs
+src/stats/rog-compactness/logs
+src/stats/rog-compactness/results-*.json

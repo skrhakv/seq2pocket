@@ -1,7 +1,4 @@
 """
-Shared constants and helpers for the radius-of-gyration (RoG) compactness
-analyses in this folder.
-
 RoG is computed directly from a residue-residue distance matrix via the
 classical identity
 
@@ -10,22 +7,6 @@ classical identity
 which needs only pairwise distances, not absolute 3D coordinates (this is
 why CBS -- for which only distance matrices, not coordinates, are available
 in this pipeline -- can still be analyzed).
-
-This analysis is purely about the seq2pocket model's own predicted pockets,
-not about whether they're correct: predicted-positive residues (pred_without
-/ pred_with) are clustered separately in each variant with the real
-clustering_utils.execute_atom_clustering (same code, same eps, as
-table3-repro/table3_core.py -- not a separate reimplementation), and each
-WITHOUT-variant cluster is matched to whichever WITH-variant cluster shares
-the largest fraction of its residues (since smoothing only ever adds
-residues, pred_with is always a superset of pred_without at the residue
-level, so a without-cluster's residues almost always land inside some
-with-cluster). RoG is computed on each matched pair.
-
-No ground-truth/official pocket data is used or needed: the question being
-asked ("does smoothing make the model's own predicted pockets more
-compact") doesn't depend on whether a given predicted cluster corresponds
-to a real binding site.
 """
 import sys
 import numpy as np

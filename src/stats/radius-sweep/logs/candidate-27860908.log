@@ -1,0 +1,5 @@
+195 cached proteins
+
+candidate_radius  AUPRC     MCC       
+10                0.6461    0.6509    
+15                0.6510    0.6457

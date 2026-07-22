@@ -14,3 +14,5 @@ src/stats/rog-compactness/logs
 src/stats/rog-compactness/results-*.json
 src/stats/old
 src/stats/clustering-hyperparam-sweep/logs
+src/data-extraction/train-test-identity-filtering/logs
+src/stats/clustering-hyperparam-sweep/val_predictions_cache.pkl

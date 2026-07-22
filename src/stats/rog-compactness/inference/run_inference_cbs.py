@@ -15,14 +15,15 @@ step (clustering_utils.execute_atom_clustering requires a probabilities
 argument for its cluster scoring), even though the notebook itself never
 persists them.
 
-One deliberate deviation, discussed with the user: this script calls
-loaded_model.eval() on the main pLM, which the notebook never does. The
-checked-in checkpoint loads with .training=True (dropout active in the
-internal ESM encoder), so the notebook as literally written runs inference
-non-deterministically. The user chose to keep .eval() here (deterministic,
-reproducible results) rather than replicate that latent bug -- unlike the
-smoothing classifier (smoother.pt), where the notebook's dropout-active
-behavior *is* replicated deliberately (see table3-repro/table3_core.py).
+Two deliberate deviations, discussed with the user: this script calls
+.eval() on both the main pLM and the smoothing classifier (smoother.pt),
+and sets torch.manual_seed(420) at import time. The checked-in checkpoints
+load with .training=True (dropout active in the internal ESM encoder and
+in the smoothing classifier's own dropout layer), so the notebooks as
+literally written run inference non-deterministically. The user chose
+deterministic, reproducible results here rather than replicate that latent
+bug -- matching table3-repro/table3_core.py's own .eval()/manual_seed(420)
+choice for the smoothing classifier.
 
 The compactness analysis itself is *not* done here: it is cheap and
 CPU-only, so it lives alongside this file in rog-compactness/ and can be

@@ -1,32 +1,5 @@
 #!/usr/bin/env python3
 """
-GPU inference step: run the seq2pocket GBS model on LIGYSIS and save
-per-residue predictions (with and without smoothing) for downstream
-CPU-only analysis (see ../rog_compactness.py and ../rog_random_control.py).
-
-Mirrors src/evaluation/ligysis/residue-level-evaluation.ipynb exactly
-(same paths, same DECISION_THRESHOLD / SMOOTHING_DECISION_THRESHOLD /
-POSITIVE_DISTANCE_THRESHOLD, same smoothing loop) -- the only addition is
-that per-protein ground truth / predictions (with and without smoothing) are
-saved to disk instead of only being reduced to aggregate MCC/F1/ACC. The
-raw per-residue probabilities (pre-threshold) are also saved -- needed by
-rog_compactness.py's clustering step (clustering_utils.execute_atom_clustering
-requires a probabilities argument for its cluster scoring), even though the
-notebook itself never persists them.
-
-One deliberate deviation, discussed with the user: this script calls
-loaded_model.eval() on the main pLM, which the notebook never does. The
-checked-in checkpoint loads with .training=True (dropout active in the
-internal ESM encoder), so the notebook as literally written runs inference
-non-deterministically. The user chose to keep .eval() here (deterministic,
-reproducible results) rather than replicate that latent bug -- unlike the
-smoothing classifier (smoother.pt), where the notebook's dropout-active
-behavior *is* replicated deliberately (see table3-repro/table3_core.py).
-
-The compactness analysis itself is *not* done here: it is cheap and
-CPU-only, so it lives alongside this file in rog-compactness/ and can be
-re-run without re-running ESM-2 3B inference.
-
 Output: {PROJECT_DIRECTORY}/data/stats/hole-metrics/raw-gbs.pkl
     {protein_id: {'y_test': (L,) int8, 'pred_without': (L,) int8, 'pred_with': (L,) int8,
                   'probabilities': (L,) float32}}

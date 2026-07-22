@@ -54,9 +54,11 @@ def read_val_split(path):
 
 
 def main():
+    torch.manual_seed(420)
     model = torch.load(MODEL_PATH, weights_only=False).to(DEVICE)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     smoothing_model = torch.load(SMOOTHING_MODEL_PATH, weights_only=False).to(DEVICE)
+    smoothing_model.eval()
 
     proteins = read_val_split(VAL_PATH)
     print(f'{len(proteins)} proteins in the validation split')
@@ -80,8 +82,6 @@ def main():
             continue
 
         predictions_without = (probabilities > DECISION_THRESHOLD).astype(float)
-        # deliberately NOT calling smoothing_model.eval() -- matches the main
-        # pipeline's behavior (see table3_core.py docstring, point 2)
         predictions_with = table3_core.apply_smoothing(predictions_without, X_test, distance_matrix, smoothing_model)
 
         cache[protein_id] = {

@@ -4,9 +4,9 @@
 #SBATCH --nodes=1                 # number of nodes (can be only 1)
 #SBATCH --mem=512000               # memory resource per node
 #SBATCH --job-name="esm-3b"     # change to your job name
-#SBATCH --output=/home/skrhakv/Projects/seq2pocket/src/pLM-training/output-650M.txt       # stdout and stderr output file
-#SBATCH --mail-user=vit.skrhak@matfyz.cuni.cz # send email when job changes state to email address user@example.com
-#SBATCH --exclusive               # Use whole node
+#SBATCH --output=/home/skrhakv/Projects/seq2pocket/src/pLM-training/logs/train-%j.log
+#SBATCH --mail-user=vit.skrhak@matfyz.cuni.cz
+#SBATCH --mail-type=END,FAIL
 
 cd /home/skrhakv/Projects/seq2pocket/src/pLM-training
 source activate base

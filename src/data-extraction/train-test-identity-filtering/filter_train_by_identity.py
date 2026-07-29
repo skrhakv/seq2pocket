@@ -1,9 +1,7 @@
 """
 Removes sc-PDB_enhanced training entries whose sequence is too similar to a
 LIGYSIS test sequence, so train/test overlap is ruled out at the sequence
-level rather than only at the UniProt-ID level (see
-../extract-scPDB.ipynb, cell 8, for the existing UniProt-based filter this
-supplements).
+level rather than only at the UniProt-ID level.
 
 For every (unique) train sequence, aligns it against every (unique) test
 sequence with sequence_identity_utils.compute_identity() and keeps the
@@ -23,7 +21,7 @@ import pandas as pd
 
 PROJECT_DIRECTORY = '/home/skrhakv/Projects/seq2pocket'
 sys.path.append(f'{PROJECT_DIRECTORY}/src/utils')
-from sequence_identity_utils import compute_identity  # noqa: E402
+from sequence_identity_utils import compute_identity
 
 DATA_DIRECTORY = f'{PROJECT_DIRECTORY}/data/data-extraction'
 TRAIN_PATH = f'{DATA_DIRECTORY}/scPDB_enhanced_binding_sites_translated_filtered.csv'

@@ -15,7 +15,7 @@ CIF_FILES = '/home/skrhakv/Projects/seq2pocket/data/cif_files'
 POINTS_DENSITY_PER_ATOM = 50
 PROBE_RADIUS = 1.6
 
-def execute_atom_clustering(pdb_id, chain_id, predictions, probabilities, eps=10, scoring_method='mean'):
+def execute_atom_clustering(pdb_id, chain_id, predictions, probabilities, eps=10, scoring_method='sum_of_squares'):
     """
     Execute atom-level clustering based on predicted binding residues.
     Args:
@@ -87,6 +87,47 @@ def execute_atom_clustering(pdb_id, chain_id, predictions, probabilities, eps=10
     cluster_scores = final_cluster_scores
 
     return clusters, residue_clusters, cluster_scores, atom_coords, residue_coords
+
+def compute_dcc_matched_rro(actual_binding_sites, actual_centers, predicted_centers, cluster_residues, dcc_hit_threshold=12.0):
+    """
+    Matches each observed binding site to its nearest predicted cluster by
+    centroid distance (DCC, unrestricted over all predicted clusters), then
+    computes RRO on that SAME matched cluster. The "best" prediction is defined by minimum DCC, and
+    RRO is reported only for sites whose match is <= dcc_hit_threshold ("mean
+    % RRO across all correctly predicted sites"). Sites that miss the
+    threshold, or have no predicted clusters at all, are excluded from RRO
+    entirely.
+
+    Args:
+        actual_binding_sites: list of residue-id arrays/lists, one per observed site.
+        actual_centers: list of np.array([x,y,z]) centroids, same order/length as actual_binding_sites.
+        predicted_centers: dict {cluster_label: np.array([x,y,z])}.
+        cluster_residues: list of residue-id iterables, indexed by the same cluster_label as predicted_centers.
+        dcc_hit_threshold: DCC cutoff (Angstrom) for a prediction to count as "correct" (12.0 in Javier et al.).
+
+    Returns:
+        List of dicts, one per observed site, same order as actual_binding_sites:
+        {'dcc': float (inf if no predicted clusters), 'rro': float or None
+        (None unless dcc <= dcc_hit_threshold)}.
+    """
+    results = []
+    for pocket, center in zip(actual_binding_sites, actual_centers):
+        dcc = float('inf')
+        best_cluster_idx = None
+        for j, predicted_center in predicted_centers.items():
+            distance = np.linalg.norm(center - predicted_center)
+            if distance < dcc:
+                dcc = distance
+                best_cluster_idx = j
+
+        rro = None
+        if dcc <= dcc_hit_threshold and best_cluster_idx is not None:
+            matched_residues = cluster_residues[best_cluster_idx]
+            pocket_set = set(pocket.tolist()) if hasattr(pocket, 'tolist') else set(pocket)
+            rro = len(pocket_set.intersection(matched_residues)) / len(pocket_set)
+
+        results.append({'dcc': dcc, 'rro': rro})
+    return results
 
 def cluster_atoms_by_surface(all_points, point_to_atom_map, eps=1.5, gmm=False):
     """
@@ -215,7 +256,8 @@ def get_protein_surface_points(pdb_id, chain_id, predicted_binding_sites):
             atom_coords[representative_atom_id] = representative_atom.get_vector()
             map_atoms_to_residue_id[representative_atom_id] = residue_id
             
-            
+    if len(surface_points) == 0:
+        return np.array([]), [], [], [], []
     surface_points = np.vstack(surface_points)
     map_surface_points_to_atom_id = np.array(map_surface_points_to_atom_id)
     return surface_points, map_surface_points_to_atom_id, map_atoms_to_residue_id, atom_coords, residue_coords

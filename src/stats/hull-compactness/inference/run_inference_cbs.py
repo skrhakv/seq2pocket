@@ -1,34 +1,5 @@
 #!/usr/bin/env python3
 """
-GPU inference step: run the seq2pocket CBS model on the CryptoBench test set
-and save per-residue predictions (with and without smoothing) for downstream
-CPU-only analysis (see ../rog_compactness.py and ../rog_random_control.py).
-
-Mirrors src/evaluation/cryptobench/residue-level-evaluation.ipynb exactly
-(same paths, same DECISION_THRESHOLD / SMOOTHING_DECISION_THRESHOLD /
-POSITIVE_DISTANCE_THRESHOLD, same smoothing loop, same 3-tuple model output
-unpacking) -- the only addition is that per-protein ground truth /
-predictions (with and without smoothing) are saved to disk instead of only
-being reduced to aggregate MCC/F1/ACC. The raw per-residue probabilities
-(pre-threshold) are also saved -- needed by rog_compactness.py's clustering
-step (clustering_utils.execute_atom_clustering requires a probabilities
-argument for its cluster scoring), even though the notebook itself never
-persists them.
-
-Two deliberate deviations, discussed with the user: this script calls
-.eval() on both the main pLM and the smoothing classifier (smoother.pt),
-and sets torch.manual_seed(420) at import time. The checked-in checkpoints
-load with .training=True (dropout active in the internal ESM encoder and
-in the smoothing classifier's own dropout layer), so the notebooks as
-literally written run inference non-deterministically. The user chose
-deterministic, reproducible results here rather than replicate that latent
-bug -- matching table3-repro/table3_core.py's own .eval()/manual_seed(420)
-choice for the smoothing classifier.
-
-The compactness analysis itself is *not* done here: it is cheap and
-CPU-only, so it lives alongside this file in rog-compactness/ and can be
-re-run without re-running ESM-2 3B inference.
-
 Output: {PROJECT_DIRECTORY}/data/stats/hole-metrics/raw-cbs.pkl
     {protein_id: {'y_test': (L,) int8, 'pred_without': (L,) int8, 'pred_with': (L,) int8,
                   'probabilities': (L,) float32}}

@@ -1,0 +1,17 @@
+# Keep the build context small — only the inference code is COPYed in.
+.git
+data
+data-old
+datasets
+share
+seq2pocket_venv
+**/__pycache__
+*.pyc
+*.npy
+*.tar
+*.tar.gz
+img
+tutorial/run.ipynb
+src/**/*.ipynb
+LICENSE
+README.md

@@ -1,0 +1,5 @@
+# Runtime deps for the Seq2Pocket image
+transformers==4.48.1
+numpy==1.26.4
+scikit-learn==1.6.1
+biopython==1.85

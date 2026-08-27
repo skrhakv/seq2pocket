@@ -15,7 +15,7 @@ import torch
 import torch.nn as nn
 
 
-# HF repo holding the model / smoother files (override for a fork or private copy).
+# HF repo holding the model / smoother files
 MODELS_REPO = os.environ.get('SEQ2POCKET_MODELS_REPO', 'skrhakv/seq2pocket')
 
 # (task, size) -> model file, size-matched smoother, ESM2 backbone.

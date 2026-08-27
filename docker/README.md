@@ -38,9 +38,9 @@ into the `/models` volume's HF cache; later runs reuse them. A `650M` run pulls
 
 ```bash
 podman run --rm --gpus all \
-  -v seq2pocket-models:/models \
-  -v /data/structures:/data/structures:ro,z \
-  -v ~/seq2pocket-work:/work:z -w /work \
+  -v seq2pocket-models:/models \ # for storing models between runs
+  -v /data/structures:/data/structures:ro,z \ # where your structures are stored & batch file points at them 
+  -v ~/seq2pocket-work:/work:z -w /work \ # for the batch file + output - change '~/seq2pocket-work' if needed
   seq2pocket proteins.batch --task gbs --size 3B -o out.json
 ```
 

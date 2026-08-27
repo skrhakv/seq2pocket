@@ -68,8 +68,9 @@ def _register_unpickle_classes():
     (from tutorial/finetuning_utils.py) and CryptoBenchClassifier (under __main__)."""
     import __main__
     sys.path.insert(0, str(Path(__file__).resolve().parent / 'tutorial'))
-    from finetuning_utils import FinetunedEsmModel
+    from finetuning_utils import FinetunedEsmModel, FinetuneESM
     setattr(__main__, 'FinetunedEsmModel', FinetunedEsmModel)
+    setattr(__main__, 'FinetuneESM', FinetuneESM)
     setattr(__main__, 'CryptoBenchClassifier', CryptoBenchClassifier)
 
 

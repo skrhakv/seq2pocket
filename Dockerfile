@@ -2,12 +2,10 @@
 
 FROM python:3.12-slim
 
-# HF_HOME puts the standalone ESM2 download in the /models volume, not a layer.
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 HF_HOME=/models/hf-cache
 
-# libgomp1: OpenMP for torch/scikit-learn. ca-certificates: HTTPS downloads.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates libgomp1 \
+        ca-certificates libgomp1 procps \
     && rm -rf /var/lib/apt/lists/*
 
 # PyTorch (CUDA 12.4 wheels; also runs on CPU-only hosts).
@@ -25,5 +23,7 @@ COPY tutorial/finetuning_utils.py /app/tutorial/finetuning_utils.py
 RUN cp /app/SASA.py "$(python -c 'import Bio.PDB.SASA as m; print(m.__file__)')"
 
 VOLUME /models
-ENTRYPOINT ["python", "/app/run_seq2pocket.py"]
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh && ln -s /entrypoint.sh /usr/local/bin/seq2pocket
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["--help"]

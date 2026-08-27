@@ -93,10 +93,38 @@ def _three_to_one(code: str) -> str:
     return _AA3.get(code[0].upper() + code[1:].lower(), 'X')
 
 
+class _LenientMMCIFParser:
+    """Bio.PDB's MMCIFParser aborts the whole structure if any atom has a
+    non-numeric B factor (e.g. '?' in SWISS-MODEL/ModelArchive
+    files with no experimental B factors) -> swap bad values for '0.00'
+    before Biopython builds the structure.
+    """
+
+    def __init__(self, QUIET=True):
+        self.QUIET = QUIET
+
+    def get_structure(self, structure_id, filename):
+        from Bio.PDB import MMCIFParser
+        from Bio.PDB.MMCIF2Dict import MMCIF2Dict
+
+        parser = MMCIFParser(QUIET=self.QUIET)
+        parser._mmcif_dict = MMCIF2Dict(filename)
+        bfactors = parser._mmcif_dict.get('_atom_site.B_iso_or_equiv')
+        if bfactors:
+            for i, value in enumerate(bfactors):
+                try:
+                    float(value)
+                except ValueError:
+                    bfactors[i] = '0.00'
+        parser._build_structure(structure_id)
+        parser._structure_builder.set_header(parser._get_header())
+        return parser._structure_builder.get_structure()
+
+
 def _get_parser(path: Path):
-    from Bio.PDB import PDBParser, MMCIFParser
+    from Bio.PDB import PDBParser
     if path.suffix.lower() in ('.cif', '.mmcif'):
-        return MMCIFParser(QUIET=True)
+        return _LenientMMCIFParser(QUIET=True)
     return PDBParser(QUIET=True)
 
 

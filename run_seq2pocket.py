@@ -15,6 +15,9 @@ import torch
 import torch.nn as nn
 
 
+# Version of the output JSON schema (semver pre-release; still unstable).
+FORMAT_VERSION = '0.1.0-beta'
+
 # HF repo holding the model / smoother files
 MODELS_REPO = os.environ.get('SEQ2POCKET_MODELS_REPO', 'skrhakv/seq2pocket')
 
@@ -129,21 +132,68 @@ def _get_parser(path: Path):
 
 
 def parse_chain(pdb_path: Path, chain_id: str):
-    """Return (auth_res_ids, sequence, CA_coords) for the requested chain."""
+    """Return (auth_res_ids, icodes, sequence, CA_coords) for the requested chain."""
     model = _get_parser(pdb_path).get_structure('prot', str(pdb_path))[0]
     if chain_id not in model:
         available = ', '.join(c.id for c in model.get_chains())
         raise ValueError(f"chain '{chain_id}' not found (available: {available})")
 
-    res_ids, seq, coords = [], [], []
+    res_ids, icodes, seq, coords = [], [], [], []
     for residue in model[chain_id].get_residues():
-        het, seqnum, _ = residue.get_id()
+        het, seqnum, icode = residue.get_id()
         if het.strip() or 'CA' not in residue:      # skip HETATM/water and gaps
             continue
         res_ids.append(seqnum)
+        icodes.append(icode.strip())
         seq.append(_three_to_one(residue.get_resname()))
         coords.append(residue['CA'].get_vector().get_array())
-    return res_ids, ''.join(seq), np.array(coords, dtype=np.float32)
+    return res_ids, icodes, ''.join(seq), np.array(coords, dtype=np.float32)
+
+
+def _as_list(v):
+    if v is None:
+        return []
+    return v if isinstance(v, list) else [v]
+
+
+def parse_structure_meta(pdb_path: Path):
+    """Return (pdb_model_number, label_map) for the first model of the structure.
+
+    label_map maps a Biopython auth residue key
+    (auth_chain, auth_seqnum, icode) -> [label_chain, label_seqnum]; it is empty
+    for PDB inputs, where the label scheme equals the auth scheme."""
+    if pdb_path.suffix.lower() not in ('.cif', '.mmcif'):
+        model = _get_parser(pdb_path).get_structure('prot', str(pdb_path))[0]
+        return (getattr(model, 'serial_num', None) or 1, {})
+
+    from Bio.PDB.MMCIF2Dict import MMCIF2Dict
+    d = MMCIF2Dict(str(pdb_path))
+    auth_chain = _as_list(d.get('_atom_site.auth_asym_id'))
+    auth_seq   = _as_list(d.get('_atom_site.auth_seq_id'))
+    icodes     = _as_list(d.get('_atom_site.pdbx_PDB_ins_code'))
+    lab_chain  = _as_list(d.get('_atom_site.label_asym_id'))
+    lab_seq    = _as_list(d.get('_atom_site.label_seq_id'))
+    models     = _as_list(d.get('_atom_site.pdbx_PDB_model_num'))
+
+    first = models[0] if models else None
+    pdb_model_number = int(first) if first not in (None, '', '.', '?') else 1
+
+    def _norm_ic(v):
+        v = (v or '').strip()
+        return '' if v in ('?', '.') else v
+
+    label_map = {}
+    for i in range(len(auth_chain)):
+        if models and models[i] != first:            # first model only
+            continue
+        try:
+            key = (auth_chain[i], int(auth_seq[i]), _norm_ic(icodes[i] if icodes else ''))
+        except (ValueError, IndexError):
+            continue
+        ls = lab_seq[i] if i < len(lab_seq) else None
+        label_seq = None if ls in (None, '.', '?', '') else int(ls)
+        label_map[key] = [lab_chain[i] if i < len(lab_chain) else None, label_seq]
+    return pdb_model_number, label_map
 
 
 def compute_distance_matrix(coords: np.ndarray) -> np.ndarray:
@@ -317,10 +367,10 @@ def load_models(task, size, models_dir: Path, device, use_smoother: bool):
     return tokenizer, gbs_model, esm_standalone, smoother
 
 
-def predict_structure(pdb_path, chain_id, tokenizer, gbs_model, esm_standalone,
-                      smoother, device, use_smoother) -> dict:
-    """Run the pipeline on one structure -> {structure_id, chain, ranked_pockets}."""
-    res_ids, sequence, coords = parse_chain(pdb_path, chain_id)
+def predict_structure(pdb_path, chain_id, label_map, tokenizer, gbs_model,
+                      esm_standalone, smoother, device, use_smoother) -> dict:
+    """Run the pipeline on one chain -> {ranked_pockets: [...]}."""
+    res_ids, icodes, sequence, coords = parse_chain(pdb_path, chain_id)
 
     probs = compute_prediction(sequence, gbs_model, tokenizer, device)
     if use_smoother:
@@ -333,6 +383,17 @@ def predict_structure(pdb_path, chain_id, tokenizer, gbs_model, esm_standalone,
     binding_indices  = [i for i, v in enumerate(preds) if v == 1.0]
     binding_auth_ids = [res_ids[i] for i in binding_indices]
     probs_by_resnum  = {res_ids[i]: float(probs[i]) for i in binding_indices}
+
+    # Per auth-seqnum identity (auth/label tuples) + CA coord for pocket centres.
+    res_info = {}
+    for seqnum, icode, ca in zip(res_ids, icodes, coords):
+        lab = label_map.get((chain_id, seqnum, icode)) if label_map else None
+        label_chain, label_seq = lab if lab else (chain_id, seqnum)
+        res_info[seqnum] = {
+            'auth':  [chain_id, seqnum, icode],
+            'label': [label_chain, label_seq, icode],
+            'ca':    ca,
+        }
 
     ranked_pockets = []
     if binding_auth_ids:
@@ -350,15 +411,20 @@ def predict_structure(pdb_path, chain_id, tokenizer, gbs_model, esm_standalone,
         ranked = sorted(zip(cluster_residues.values(), cluster_scores),
                         key=lambda x: x[1], reverse=True)
         for rank, (resnums, _score) in enumerate(ranked, 1):
+            pocket_res = sorted(r for r in resnums if r in res_info)
+            cas = np.array([res_info[r]['ca'] for r in pocket_res])
+            center = cas.mean(axis=0)
             ranked_pockets.append({
                 'rank': rank,
-                'residues': [f'{chain_id}:{r}' for r in sorted(resnums)],
+                'auth_residues':  [res_info[r]['auth']  for r in pocket_res],
+                'label_residues': [res_info[r]['label'] for r in pocket_res],
                 'probability': float(np.mean([probs_by_resnum.get(r, 0.0)
-                                              for r in resnums])),
+                                              for r in pocket_res])),
+                'center': {'x': float(center[0]), 'y': float(center[1]),
+                           'z': float(center[2])},
             })
 
-    return {'structure_id': pdb_path.stem, 'chain': chain_id,
-            'ranked_pockets': ranked_pockets}
+    return {'ranked_pockets': ranked_pockets}
 
 
 def read_batch(batch_file) -> list:
@@ -402,34 +468,53 @@ def run(args) -> dict:
     tokenizer, gbs_model, esm_standalone, smoother = load_models(
         args.task, args.size, Path(args.models_dir), device, use_smoother)
 
-    predictions = []
+    # Tool-specific run parameters (grouped so the general fields stay predictor-agnostic).
+    parameters = {
+        'task': args.task, 'model_size': args.size, 'model_file': spec['model'],
+        'smoothing': use_smoother, 'device': device,
+        'decision_threshold': DECISION_THRESHOLD,
+        'cluster_bandwidth': CLUSTER_BANDWIDTH,
+    }
+
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     for i, pdb_path in enumerate(inputs, 1):
         try:
+            pdb_model_number, label_map = parse_structure_meta(pdb_path)
             chains = list_protein_chains(pdb_path)
         except Exception as e:
             print(f'[{i}/{len(inputs)}] WARN {pdb_path.name}: {e}', flush=True)
             continue
+
+        predictions = []
         for chain in chains:
             try:
-                pred = predict_structure(pdb_path, chain, tokenizer, gbs_model,
-                                         esm_standalone, smoother, device, use_smoother)
+                pred = predict_structure(pdb_path, chain, label_map, tokenizer,
+                                         gbs_model, esm_standalone, smoother,
+                                         device, use_smoother)
             except Exception as e:
                 print(f'[{i}/{len(inputs)}] WARN {pdb_path.name} [{chain}]: {e}',
                       flush=True)
                 continue
-            print(f'[{i}/{len(inputs)}] {pred["structure_id"]} [{chain}]: '
+            print(f'[{i}/{len(inputs)}] {pdb_path.stem} [{chain}]: '
                   f'{len(pred["ranked_pockets"])} pocket(s).', flush=True)
             predictions.append(pred)
 
-    return {
-        'metadata': {
-            'tool': 'seq2pocket', 'task': args.task, 'model_size': args.size,
-            'model_file': spec['model'], 'smoothing': use_smoother, 'device': device,
-            'decision_threshold': DECISION_THRESHOLD,
-            'cluster_bandwidth': CLUSTER_BANDWIDTH,
-        },
-        'predictions': predictions,
-    }
+        result = {
+            'format': FORMAT_VERSION,
+            'metadata': {
+                'tool': 'seq2pocket',
+                'structure_id': pdb_path.stem,
+                'input_file': str(pdb_path),
+                'pdb_model_number': pdb_model_number,
+                'parameters': parameters,
+            },
+            'predictions': predictions,
+        }
+        out_path = out_dir / f'{pdb_path.stem}.json'
+        out_path.write_text(json.dumps(result, indent=2))
+        print(f'[{i}/{len(inputs)}] Wrote {out_path}', flush=True)
 
 
 def parse_args(argv=None):
@@ -447,19 +532,14 @@ def parse_args(argv=None):
                    help='Skip the embedding-supported smoothing step.')
     p.add_argument('--models-dir', default='/models',
                    help='Directory holding the model .pt files.')
-    p.add_argument('-o', '--output', help='Combined JSON path (default: stdout).')
+    p.add_argument('-o', '--out-dir', default='.',
+                   help='Output directory for the per-structure JSON files '
+                        '(one <structure_id>.json each). Default: current dir.')
     return p.parse_args(argv)
 
 
 def main():
-    args = parse_args()
-    text = json.dumps(run(args), indent=2)
-    if args.output:
-        Path(args.output).parent.mkdir(parents=True, exist_ok=True)
-        Path(args.output).write_text(text)
-        print(f'Wrote {args.output}', flush=True)
-    else:
-        print(text)
+    run(parse_args())
 
 
 if __name__ == '__main__':

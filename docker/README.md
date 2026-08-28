@@ -9,7 +9,7 @@ pockets as JSON.
 | `--size`   | `650M`, `3B`   | `3B`  | ESM2 size |
 | `--device` | `auto`, `cpu`, `cuda` | `auto` | device |
 | `--no-smooth` | flag        | off   | Skip embedding-supported smoothing |
-| `-o`       | path           | stdout | Output JSON |
+| `-o`       | directory      | `.` | Output dir; one `<structure_id>.json` per structure |
 
 Pipeline: GBS/CBS prediction → embedding-supported smoothing → SASA MeanShift
 clustering.
@@ -41,7 +41,7 @@ podman run --rm --gpus all \
   -v seq2pocket-models:/models \ # for storing models between runs
   -v /data/structures:/data/structures:ro,z \ # where your structures are stored & batch file points at them 
   -v ~/seq2pocket-work:/work:z -w /work \ # for the batch file + output - change '~/seq2pocket-work' if needed
-  seq2pocket proteins.batch --task gbs --size 3B -o out.json
+  seq2pocket proteins.batch --task gbs --size 3B -o results
 ```
 
 `~/seq2pocket-work/proteins.batch`:
@@ -63,18 +63,32 @@ podman run --rm -it --entrypoint bash -v seq2pocket-models:/models \
 
 ## Output
 
-One combined JSON (`-o` / stdout) with a `predictions` entry per structure chain:
+One JSON file per structure, written to `-o` as `<structure_id>.json`. Residues
+are `[chain, seqnum, insertion_code]` tuples.
+
 
 ```json
 {
-  "metadata": { "tool": "seq2pocket", "task": "gbs", "model_size": "3B",
-                "smoothing": true, "device": "cuda", ... },
+  "format": "0.1.0-beta",
+  "metadata": {
+    "tool": "seq2pocket",
+    "structure_id": "4gqq",
+    "input_file": "/data/structures/4gqq.pdb",
+    "pdb_model_number": 1,
+    "parameters": { "task": "gbs", "model_size": "3B",  "model_file": "gbs-model.pt",
+                    "smoothing": true, "device": "cuda",
+                    "decision_threshold": 0.7, "cluster_bandwidth": 10.0 }
+  },
   "predictions": [
     {
-      "structure_id": "4gqq",
-      "chain": "A",
       "ranked_pockets": [
-        { "rank": 1, "residues": ["A:14", "A:16", ...], "probability": 0.83 }
+        {
+          "rank": 1,
+          "auth_residues":  [["A", 14, ""], ["A", 16, ""]],
+          "label_residues": [["A", 10, ""], ["A", 12, ""]],
+          "probability": 0.83,
+          "center": { "x": 12.3, "y": -4.5, "z": 8.1 }
+        }
       ]
     }
   ]

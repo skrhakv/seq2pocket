@@ -1,0 +1,6 @@
+# Third-party tools built by setup.sh - not vendored, reproducible from source.
+vendor/
+# Intermediate/working data (structure conversions, foldseek DBs, probis runs).
+work/
+logs/
+*.log

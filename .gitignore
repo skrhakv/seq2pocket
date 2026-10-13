@@ -17,3 +17,4 @@ src/stats/clustering-hyperparam-sweep/logs
 src/data-extraction/train-test-identity-filtering/logs
 src/stats/clustering-hyperparam-sweep/val_predictions_cache.pkl
 src/stats/table3-repro/*.pkl
+share

@@ -54,24 +54,25 @@ The enhancement of the sc-PDB dataset is implemented in separate branch named ['
 If you have any questions regarding the usage of the framework, comparing your method against the benchmark, or if you have any suggestions, please feel free to contact us by raising [an issue!](https://github.com/skrhakv/seq2pocket/issues)
 
 ## How to cite
-If you find our work useful, please cite [the paper](https://www.biorxiv.org/content/10.64898/2026.01.28.702257v1):
+If you find our work useful, please cite [the paper](https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/btag778/8931593):
 
-- *Vít Škrhák, Lukáš Polák, Marian Novotný, and David Hoksza. 2026. Seq2Pocket: Augmenting protein language models for spatially consistent binding site prediction. bioRxiv. [https://doi.org/10.64898/2026.01.28.702257](https://doi.org/10.64898/2026.01.28.702257)*
+- *Vít Škrhák, Lukáš Polák, Marian Novotný, David Hoksza, Seq2Pocket: Augmenting protein language models for spatially consistent binding site prediction, Bioinformatics, 2026;, btag778, [https://doi.org/10.1093/bioinformatics/btag778](https://doi.org/10.1093/bioinformatics/btag778)*
 
 
 or, if you prefer the `BibTeX` format:
 
 ```
-@article {2026.01.28.702257,
-	author = {Škrhák, Vít and Polák, Lukáš and Novotný, Marian and Hoksza, David},
-	title = {Seq2Pocket: Augmenting protein language models for spatially consistent binding site prediction},
-	elocation-id = {2026.01.28.702257},
-	year = {2026},
-	doi = {10.64898/2026.01.28.702257},
-	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/early/2026/05/11/2026.01.28.702257},
-	eprint = {https://www.biorxiv.org/content/early/2026/05/11/2026.01.28.702257.full.pdf},
-	journal = {bioRxiv}
+@article{10.1093/bioinformatics/btag778,
+    author = {Škrhák, Vít and Polák, Lukáš and Novotný, Marian and Hoksza, David},
+    title = {Seq2Pocket: Augmenting protein language models for spatially consistent binding site prediction},
+    journal = {Bioinformatics},
+    pages = {btag778},
+    year = {2026},
+    month = {10},
+    issn = {1367-4811},
+    doi = {10.1093/bioinformatics/btag778},
+    url = {https://doi.org/10.1093/bioinformatics/btag778},
+    eprint = {https://academic.oup.com/bioinformatics/advance-article-pdf/doi/10.1093/bioinformatics/btag778/72047945/btag778.pdf},
 }
 ```
 

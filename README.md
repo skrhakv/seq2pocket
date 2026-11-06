@@ -23,6 +23,37 @@ To run the scripts, it might be useful to install the packages specified in `req
 
 To generate SAS points, update your biopython's `SASA.py` with the updated version from this repository (`/SASA.py`).
 
+### Docker
+To predict pockets for your own structures without installing anything, use the Docker image:
+
+```bash
+docker pull ghcr.io/skrhakv/seq2pocket:latest
+```
+
+Write a batch file with one structure path (`.pdb` or `.cif`) per line, e.g. `~/seq2pocket-work/proteins.batch`:
+
+```
+/data/structures/4gqq.pdb
+/data/structures/1crn.cif
+```
+
+Then run (`--task gbs` for general binding sites, `--task cbs` for cryptic binding sites):
+
+```bash
+docker run --rm --gpus all \
+  -v seq2pocket-models:/models \
+  -v /data/structures:/data/structures:ro \
+  -v ~/seq2pocket-work:/work -w /work \
+  ghcr.io/skrhakv/seq2pocket:latest proteins.batch --task gbs --size 3B -o results
+```
+
+- `seq2pocket-models:/models` keeps the models between runs; they are downloaded from [Hugging Face](https://huggingface.co/skrhakv/seq2pocket) on the first run.
+- `/data/structures` must be mounted at the same path the batch file uses.
+- `-o results` writes one `<structure_id>.json` with the ranked pockets per structure.
+- Without a GPU, drop `--gpus all` (we recommend using the 650M model version in that case for performance reasons).
+
+See [`docker/README.md`](docker/README.md) for all options and the output format.
+
 
 ## Framework Components
 The **Seq2Pocket** workflow is divided into three main stages:
